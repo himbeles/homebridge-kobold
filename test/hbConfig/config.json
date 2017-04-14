@@ -1,0 +1,29 @@
+{
+    "bridge": {
+        "name": "Homebridge 8EAA",
+        "username": "0E:1B:D2:BB:8E:AA",
+        "port": 51825,
+        "pin": "564-62-308"
+    },
+    "accessories": [],
+    "plugins": [
+    "homebridge-kobold",
+    "homebridge-config-ui-x"
+    ],
+    "platforms": [
+        {
+            "name": "Config",
+            "port": 8581,
+            "platform": "config"
+        },
+        {
+            "token": "",
+            "language": "en",
+            "platform": "KoboldVacuumRobot",
+            "_bridge": {
+                "username": "0E:30:C2:CE:1D:93",
+                "port": 57695
+            }
+        }
+    ]
+}
