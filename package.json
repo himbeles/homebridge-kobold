@@ -1,0 +1,57 @@
+{
+  "name": "homebridge-kobold",
+  "displayName": "Homebridge Kobold Plugin",
+  "type": "module",  
+  "version": "1.0.0",
+  "description": "A Vorwerk Kobold vacuum robot plugin for homebridge.",
+  "author": "Luis R.",
+  "license": "MIT",
+    "homepage": "https://github.com/USERNAME/GITHUB_PROJECT_NAME#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/himbeles/homebridge-kobold.git"
+  },
+  "bugs": {
+    "url": "https://github.com/himbeles/homebridge-kobold/issues"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "vorwerk",
+    "kobold"
+  ],
+  "contributors": [
+    {
+      "name": "Alexandre L.",
+      "url": "https://github.com/aluini"
+    }
+  ],
+  "main": "dist/index.js",
+  "engines": {
+    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
+  },
+  "scripts": {
+    "build": "rimraf ./dist && tsc",
+    "lint": "eslint . --max-warnings=0",
+    "prepublishOnly": "npm run lint && npm run build",
+    "watch": "npm run build && npm link && nodemon"
+  },
+  "dependencies": {
+    "homebridge-lib": "^7.1.8",
+    "colors": "^1.4.0",
+    "debug": "^4.4.3",
+    "node-kobold-control": ">=0.6.0",
+    "uuid": "^13.0.0"
+  },
+    "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^24.5.2",
+    "eslint": "^9.36.0",
+    "homebridge": "^2.0.0-beta.30",
+    "nodemon": "^3.1.10",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.0"
+  }
+}

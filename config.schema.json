@@ -1,0 +1,43 @@
+{
+    "pluginAlias": "KoboldVacuumRobot",
+    "pluginType": "platform",
+    "headerDisplay": "For Advanced settings like the refresh time interval or disabled switches/sensors. [Check Here](https://github.com/himbeles/homebridge-kobold#readme)",
+    "strictValidation": false,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "token": {
+            "title": "token",
+            "type": "string",
+            "required": true,
+            "description": "Your Kobold Token (https://git.io/J3g1b)"
+        },
+        "language": {
+          "title": "language",
+          "type": "string",
+          "default": "en",
+          "oneOf": [
+            {
+              "title": "English",
+              "enum": [
+                "en"
+              ]
+            },
+            {
+              "title": "German",
+              "enum": [
+                "de"
+              ]
+            },
+            {
+              "title": "French",
+              "enum": [
+                "fr"
+              ]
+            }
+          ],
+          "required": true
+        }
+      }
+    }
+}
