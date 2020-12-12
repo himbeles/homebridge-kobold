@@ -1,6 +1,6 @@
 # homebridge-kobold
 
-This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to control your [Vorwerk Kobold](https://www.vorwerk.de/) vacuum robot. You can download it via [npm](https://www.npmjs.com/package/homebridge-kobold).
+This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to control your [Vorwerk Kobold](https://kobold.vorwerk.de/saugroboter/) VR300 vacuum robot. You can download it via [npm](https://www.npmjs.com/package/homebridge-kobold).
 
 It is based on naofireblade's `homebridge-neato` and nicoh88's `homebridge-vorwerk`.
 
@@ -10,10 +10,10 @@ It is based on naofireblade's `homebridge-neato` and nicoh88's `homebridge-vorwe
   - Eco mode
   - Extra care navigation
   - Nogo lines
-- Zone cleaning <sup>[1](#d7)</sup><sup>, </sup><sup>[2](#change-room)</sup>
+- Zone cleaning <sup>[1](#change-room)</sup>
 - Spot cleaning
-  - Individual spot size <sup>[1](#d7)</sup><sup>, </sup><sup>[3](#eve)</sup>
-  - Clean twice <sup>[3](#eve)</sup>
+  - Individual spot size <sup>[2](#eve)</sup>
+  - Clean twice <sup>[2](#eve)</sup>
 - Return to dock
 - Find the robot
 - Schedule (de)activation
@@ -25,8 +25,6 @@ It is based on naofireblade's `homebridge-neato` and nicoh88's `homebridge-vorwe
 - Automatic or periodic refresh of robot state
 - Multiple robots
 
-> <b name="d7">1</b> Only available on the Neato D7.  
-
 > <b name="change-room">2</b> You can send the robot from one room to another as well. He will return to the base, wait there some seconds and then starts cleaning the next room.
 
 > <b name="eve">3</b> You need a third party app like eve to access these features.
@@ -37,24 +35,60 @@ It is based on naofireblade's `homebridge-neato` and nicoh88's `homebridge-vorwe
 
 1. Install homebridge using: `npm install -g homebridge`
 2. Install this plugin using: `npm install -g homebridge-kobold`
-3. If you don't have a Neato account yet, create one [here](https://www.neatorobotics.com/create-account/).
-4. Update your configuration file. See the sample below.
+3. Update your configuration file. See the sample below.
 
 ## Configuration
 
 Add the following information to your config file. Change the values for email and password.
 
-### Simple
+### Simple 
 
 ```json
 "platforms": [
 	{
-		"platform": "NeatoVacuumRobot",
-		"email": "YourEmail",
-		"password": "YourPassword"
+		"platform": "VorwerkVacuumRobot",
+		"token": "YourToken"
 	}
 ]
 ```
+
+You can get a token using the following two curl commands:
+
+```bash
+# This will trigger the email sending
+curl -X "POST" "https://mykobold.eu.auth0.com/passwordless/start" \
+     -H 'Content-Type: application/json' \
+     -d $'{
+  "send": "code",
+  "email": "ENTER_YOUR_EMAIL_HERE",
+  "client_id": "KY4YbVAvtgB7lp8vIbWQ7zLk3hssZlhR",
+  "connection": "email"
+}'
+```
+==== wait for the email to be received ====
+
+```bash
+# this will generate a token using the numbers you received via email
+# replace the value of otp 123456 with the value you received from the email
+curl -X "POST" "https://mykobold.eu.auth0.com/oauth/token" \
+     -H 'Content-Type: application/json' \
+     -d $'{
+  "prompt": "login",
+  "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",
+  "scope": "openid email profile read:current_user",
+  "locale": "en",
+  "otp": "123456",
+  "source": "vorwerk_auth0",
+  "platform": "ios",
+  "audience": "https://mykobold.eu.auth0.com/userinfo",
+  "username": "ENTER_YOUR_EMAIL_HERE",
+  "client_id": "KY4YbVAvtgB7lp8vIbWQ7zLk3hssZlhR",
+  "realm": "email",
+  "country_code": "DE"
+}'
+```
+
+From the output, you want to copy the `id_token` value.
 
 ### Advanced
 
@@ -72,9 +106,8 @@ List of plugin features that you don't want to use in homekit (e.g. `dock`, `doc
 ```json
 "platforms": [
 	{
-		"platform": "NeatoVacuumRobot",
-		"email": "YourEmail",
-		"password": "YourPassword",
+		"platform": "KoboldVacuumRobot",
+		"token": "YourToken",
 		"refresh": "120",
 		"hidden": ["dock", "dockstate", "eco", "nogolines", "extracare", "schedule", "find", "spot"]
 	}
@@ -83,11 +116,4 @@ List of plugin features that you don't want to use in homekit (e.g. `dock`, `doc
 
 ## Tested robots
 
-- Vorwerk Kobold V300 
-
-## Contributors
-Many thanks go to
-- [ghulands](https://github.com/ghulands) for finding and fixing a bug when no robot is associated with the neato account
-- [Berkay](https://github.com/btutal) for adding the schema file to use the plugin with homebridge-config-ui-x
-- [Antoine de Maleprade](https://github.com/az0uz) for adding the zone cleaning feature
-- [DJay](https://github.com/DJay-X) for testing out tons of new beta versions
+- Vorwerk Kobold VR300 
