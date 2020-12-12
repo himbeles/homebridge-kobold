@@ -1,15 +1,8 @@
-# homebridge-neato
-[![npm](https://img.shields.io/npm/v/homebridge-neato)](https://www.npmjs.com/package/homebridge-neato)
-[![npm](https://img.shields.io/npm/dt/homebridge-neato)](https://www.npmjs.com/package/homebridge-neato?activeTab=versions)
-[![GitHub last commit](https://img.shields.io/github/last-commit/naofireblade/homebridge-neato)](https://github.com/naofireblade/homebridge-neato)
+# homebridge-kobold
 
-This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to control your [Neato](https://www.neatorobotics.com/) vacuum robot. You can download it via [npm](https://www.npmjs.com/package/homebridge-neato).
+This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to control your [Vorwerk Kobold](https://www.vorwerk.de/) vacuum robot. You can download it via [npm](https://www.npmjs.com/package/homebridge-kobold).
 
-If you like this plugin and find it useful, I would be forever grateful for your support:
-
-<a href="https://www.buymeacoffee.com/naofireblade" target="_blank"><img width="140" src="https://bmc-cdn.nyc3.digitaloceanspaces.com/BMC-button-images/custom_images/orange_img.png" alt="Buy Me A Coffee"></a>
-
-Feel free to leave any feedback [here](https://github.com/naofireblade/homebridge-neato/issues).
+It is based on naofireblade's `homebridge-neato` and nicoh88's `homebridge-vorwerk`.
 
 ## Features
 
@@ -43,7 +36,7 @@ Feel free to leave any feedback [here](https://github.com/naofireblade/homebridg
 ## Installation
 
 1. Install homebridge using: `npm install -g homebridge`
-2. Install this plugin using: `npm install -g homebridge-neato`
+2. Install this plugin using: `npm install -g homebridge-kobold`
 3. If you don't have a Neato account yet, create one [here](https://www.neatorobotics.com/create-account/).
 4. Update your configuration file. See the sample below.
 
@@ -90,7 +83,7 @@ List of plugin features that you don't want to use in homekit (e.g. `dock`, `doc
 
 ## Tested robots
 
-The plugin is successfully tested with all Neato Connected Robots.
+- Vorwerk Kobold V300 
 
 ## Contributors
 Many thanks go to
