@@ -46,7 +46,7 @@ Add the following information to your config file. Change the values for email a
 ```json
 "platforms": [
 	{
-		"platform": "VorwerkVacuumRobot",
+		"platform": "KoboldVacuumRobot",
 		"token": "YourToken"
 	}
 ]
