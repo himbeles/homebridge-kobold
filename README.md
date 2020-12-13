@@ -2,7 +2,9 @@
 
 This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to control your [Vorwerk Kobold](https://kobold.vorwerk.de/saugroboter/) VR300 vacuum robot. You can download it via [npm](https://www.npmjs.com/package/homebridge-kobold).
 
-It is based on naofireblade's `homebridge-neato` and nicoh88's `homebridge-vorwerk`.
+It is based on a fork of naofireblade's `homebridge-neato` and, merged with the oAuth authentication mechanism from nicoh88's `homebridge-vorwerk`.
+
+The interaction with the Server is handled by the underlying [node-kobold-control](https://github.com/himbeles/node-kobold-control) module.
 
 ## Features
 
