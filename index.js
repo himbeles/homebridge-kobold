@@ -1,26 +1,25 @@
 "use strict";
 let inherits = require('util').inherits,
-	debug = require('debug')('homebridge-neato'),
-	botvac = require('node-botvac'),
+	debug = require('debug')('homebridge-kobold'),
+	control = require('node-kobold-control'),
 
 	Service,
 	Characteristic,
-	NeatoVacuumRobotAccessory;
+	KoboldVacuumRobotAccessory;
 
 module.exports = function (homebridge)
 {
 	Service = homebridge.hap.Service;
 	Characteristic = homebridge.hap.Characteristic;
-	NeatoVacuumRobotAccessory = require('./accessories/neatoVacuumRobot')(Service, Characteristic);
-	homebridge.registerPlatform("homebridge-neato", "NeatoVacuumRobot", NeatoVacuumRobotPlatform);
+	KoboldVacuumRobotAccessory = require('./accessories/koboldVacuumRobot')(Service, Characteristic);
+	homebridge.registerPlatform("homebridge-kobold", "KoboldVacuumRobot", KoboldVacuumRobotPlatform);
 };
 
-function NeatoVacuumRobotPlatform(log, config)
+function KoboldVacuumRobotPlatform(log, config)
 {
 	this.log = log;
 	this.serial = "1-3-3-7";
-	this.email = config['email'];
-	this.password = config['password'];
+	this.token = config['token'];
 	this.hiddenServices = '';
 	this.hiddenServices = ('disabled' in config ? config['disabled'] : this.hiddenServices);
 	this.hiddenServices = ('hidden' in config ? config['hidden'] : this.hiddenServices);
@@ -35,10 +34,10 @@ function NeatoVacuumRobotPlatform(log, config)
 		this.refresh = parseInt(config['refresh']);
 		// must be integer and positive
 		this.refresh = (typeof this.refresh !== 'number' || (this.refresh % 1) !== 0 || this.refresh < 0) ? 60 : this.refresh;
-		// minimum 60s to save some load on the neato servers
+		// minimum 60s to save some load on the Vorwerk servers
 		if (this.refresh > 0 && this.refresh < 60)
 		{
-			this.log.warn("Minimum refresh time is 60 seconds to not overload the neato servers");
+			this.log.warn("Minimum refresh time is 60 seconds to not overload the Vorwerk servers");
 			this.refresh = (this.refresh > 0 && this.refresh < 60) ? 60 : this.refresh;
 		}
 	}
@@ -50,7 +49,7 @@ function NeatoVacuumRobotPlatform(log, config)
 	this.log("Refresh is set to: " + this.refresh + (this.refresh !== 'auto' ? ' seconds' : ''));
 }
 
-NeatoVacuumRobotPlatform.prototype = {
+KoboldVacuumRobotPlatform.prototype = {
 	accessories: function (callback)
 	{
 		debug("Get robots");
@@ -60,8 +59,8 @@ NeatoVacuumRobotPlatform.prototype = {
 		this.getRobots(() =>
 		{
 			// // MOCK MULTIPLE ROBOTS START
-			// let client = new botvac.Client();
-			// client.authorize(this.email, this.password, false, (error) =>
+			// let client = new control.Client();
+			// client.authorize(this.token, (error) =>
 			// {
 			// 	client.getRobots((error, robs) =>
 			// 	{
@@ -76,7 +75,7 @@ NeatoVacuumRobotPlatform.prototype = {
 						{
 							this.log("Found robot #" + (i + 1) + " named \"" + robot.device.name + "\" with serial \"" + robot.device._serial.substring(0, 9) + "XXXXXXXXXXXX\"");
 
-							let mainAccessory = new NeatoVacuumRobotAccessory(this, robot);
+							let mainAccessory = new KoboldVacuumRobotAccessory(this, robot);
 							accessories.push(mainAccessory);
 
 							robot.mainAccessory = mainAccessory;
@@ -87,7 +86,7 @@ NeatoVacuumRobotPlatform.prototype = {
 
 							// // MOCK ZONE CLEANING START
 							// robot.boundary = {name: "Testroom", id: "1"};
-							// let roomAccessory = new NeatoVacuumRobotAccessory(this, robot);
+							// let roomAccessory = new KoboldVacuumRobotAccessory(this, robot);
 							// accessories.push(roomAccessory);
 							// robot.roomAccessories.push(roomAccessory);
 							// // MOCK ZONE CLEANING END
@@ -103,7 +102,7 @@ NeatoVacuumRobotPlatform.prototype = {
 											if (boundary.type === "polygon")
 											{
 												robot.boundary = boundary;
-												let roomAccessory = new NeatoVacuumRobotAccessory(this, robot);
+												let roomAccessory = new KoboldVacuumRobotAccessory(this, robot);
 												accessories.push(roomAccessory);
 
 												robot.roomAccessories.push(roomAccessory);
@@ -126,14 +125,14 @@ NeatoVacuumRobotPlatform.prototype = {
 	getRobots: function (callback)
 	{
 		debug("Loading your robots");
-		let client = new botvac.Client();
+		let client = new control.Client();
 
 		// Login
-		client.authorize(this.email, this.password, false, (error) =>
+		client.authorize(this.token, (error) =>
 		{
 			if (error)
 			{
-				this.log.error("Can't log on to neato cloud. Please check your internet connection and your credentials. Try again later if the neato servers have issues: " + error);
+				this.log.error("Can't log on to Vorwerk cloud. Please check your internet connection and your token. Try again later if the Vorwerk servers have issues: " + error);
 				callback();
 			}
 			else
@@ -143,7 +142,7 @@ NeatoVacuumRobotPlatform.prototype = {
 				{
 					if (error)
 					{
-						this.log.error("Successful login but can't connect to your neato robot: " + error);
+						this.log.error("Successful login but can't connect to your Vorwerk robot: " + error);
 						callback();
 					}
 					else if (robots.length === 0)
