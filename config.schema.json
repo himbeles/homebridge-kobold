@@ -1,7 +1,7 @@
 {
     "pluginAlias": "KoboldVacuumRobot",
     "pluginType": "platform",
-    "headerDisplay": "For Advanced settings like Refresh time interval or Disabled switches/sensors. [Check Here](https://github.com/himbeles/homebridge-kobold#readme)",
+    "headerDisplay": "For Advanced settings like the refresh time interval or disabled switches/sensors. [Check Here](https://github.com/himbeles/homebridge-kobold#readme)",
     "schema": {
       "type": "object",
       "properties": {
