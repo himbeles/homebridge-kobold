@@ -58,7 +58,7 @@ You can get a token using the following two curl commands:
 # This will trigger the email sending
 curl -X "POST" "https://mykobold.eu.auth0.com/passwordless/start" \
      -H 'Content-Type: application/json' \
-     -d $'{
+     -d '{
   "send": "code",
   "email": "ENTER_YOUR_EMAIL_HERE",
   "client_id": "KY4YbVAvtgB7lp8vIbWQ7zLk3hssZlhR",
@@ -72,7 +72,7 @@ curl -X "POST" "https://mykobold.eu.auth0.com/passwordless/start" \
 # replace the value of otp 123456 with the value you received from the email
 curl -X "POST" "https://mykobold.eu.auth0.com/oauth/token" \
      -H 'Content-Type: application/json' \
-     -d $'{
+     -d '{
   "prompt": "login",
   "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",
   "scope": "openid email profile read:current_user",
