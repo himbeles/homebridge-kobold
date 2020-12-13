@@ -1,22 +1,15 @@
 {
-    "pluginAlias": "NeatoVacuumRobot",
+    "pluginAlias": "KoboldVacuumRobot",
     "pluginType": "platform",
-    "headerDisplay": "For Advanced settings like Refresh time interval or Disabled switches/sensors. [Check Here](https://github.com/naofireblade/homebridge-neato#readme)",
+    "headerDisplay": "For Advanced settings like Refresh time interval or Disabled switches/sensors. [Check Here](https://github.com/himbeles/homebridge-kobold#readme)",
     "schema": {
       "type": "object",
       "properties": {
-        "email": {
-          "title": "email",
-          "type": "string",
-          "required": true,
-          "format": "email",
-          "description": "Your Email Address"
-        },
-        "password": {
-            "title": "password",
+        "token": {
+            "title": "token",
             "type": "string",
             "required": true,
-            "description": "Your Password"
+            "description": "Your Token"
         }
       }
     }

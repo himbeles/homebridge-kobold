@@ -1,4 +1,4 @@
-const debug = require('debug')('homebridge-neato');
+const debug = require('debug')('homebridge-kobold');
 const colors = require('colors');
 
 const CustomUUID = {
@@ -21,10 +21,10 @@ module.exports = function (_Service, _Characteristic)
 	SpotHeightCharacteristic = require('../characteristics/spotHeight')(Characteristic, CustomUUID);
 	SpotRepeatCharacteristic = require('../characteristics/spotRepeat')(Characteristic, CustomUUID);
 
-	return NeatoVacuumRobotAccessory;
+	return KoboldVacuumRobotAccessory;
 };
 
-function NeatoVacuumRobotAccessory(platform, robotObject)
+function KoboldVacuumRobotAccessory(platform, robotObject)
 {
 	this.platform = platform;
 	this.log = platform.log;
@@ -99,7 +99,7 @@ function NeatoVacuumRobotAccessory(platform, robotObject)
 	this.log("Added cleaning device named: " + this.name);
 }
 
-NeatoVacuumRobotAccessory.prototype = {
+KoboldVacuumRobotAccessory.prototype = {
 	identify: function (callback)
 	{
 		this.robot.getState((error, result) =>
@@ -121,7 +121,7 @@ NeatoVacuumRobotAccessory.prototype = {
 	{
 		this.informationService = new Service.AccessoryInformation();
 		this.informationService
-		.setCharacteristic(Characteristic.Manufacturer, "Neato Robotics")
+		.setCharacteristic(Characteristic.Manufacturer, "Vorwerk Deutschland Stiftung & Co. KG")
 		.setCharacteristic(Characteristic.Model, this.meta.modelName)
 		.setCharacteristic(Characteristic.SerialNumber, this.robot._serial)
 		.setCharacteristic(Characteristic.FirmwareRevision, this.meta.firmware)
