@@ -93,7 +93,7 @@ function KoboldVacuumRobotAccessory(platform, robotObject)
 		this.name = this.robot.name + ' - ' + this.boundary.name;
 	}
 
-	this.batteryService = new Service.BatteryService(this.dict["battery"], "battery");
+	this.batteryService = new Service.BatteryService(this.name + " " + this.dict["battery"], "battery");
 
 	if (this.boundary == null)
 	{
