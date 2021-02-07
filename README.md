@@ -27,6 +27,8 @@ The interaction with the Server is handled by the underlying [node-kobold-contro
 - Automatic or periodic refresh of robot state
 - Multiple robots
 
+- German or English Language Setting 
+
 > <b name="change-room">2</b> You can send the robot from one room to another as well. He will return to the base, wait there some seconds and then starts cleaning the next room.
 
 > <b name="eve">3</b> You need a third party app like eve to access these features.
@@ -49,7 +51,8 @@ Add the following information to your config file. Change the values for email a
 "platforms": [
 	{
 		"platform": "KoboldVacuumRobot",
-		"token": "YourToken"
+		"token": "YourToken",
+    "language": "de"
 	}
 ]
 ```
@@ -92,6 +95,8 @@ curl -X "POST" "https://mykobold.eu.auth0.com/oauth/token" \
 
 From the output, you want to copy the `id_token` value.
 
+The `language` can be `de` for German, or `en` for English.
+
 ### Advanced
 
 Below are explanations for advanced parameters to adjust the plugin to your needs. All parameters are *optional*.
@@ -111,7 +116,8 @@ List of plugin features that you don't want to use in homekit (e.g. `dock`, `doc
 		"platform": "KoboldVacuumRobot",
 		"token": "YourToken",
 		"refresh": "120",
-		"hidden": ["dock", "dockstate", "eco", "nogolines", "extracare", "schedule", "find", "spot"]
+		"hidden": ["dock", "dockstate", "eco", "nogolines", "extracare", "schedule", "find", "spot"],
+    "language": "de"
 	}
 ]
 ```
