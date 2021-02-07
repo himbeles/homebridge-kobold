@@ -10,6 +10,26 @@
             "type": "string",
             "required": true,
             "description": "Your Token"
+        },
+        "language": {
+          "title": "language",
+          "type": "string",
+          "default": "en",
+          "oneOf": [
+            {
+              "title": "English",
+              "enum": [
+                "en"
+              ]
+            },
+            {
+              "title": "German",
+              "enum": [
+                "de"
+              ]
+            }
+          ],
+          "required": true
         }
       }
     }

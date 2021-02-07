@@ -20,6 +20,7 @@ function KoboldVacuumRobotPlatform(log, config)
 	this.log = log;
 	this.serial = "1-3-3-7";
 	this.token = config['token'];
+	this.language = config['language'];
 	this.hiddenServices = '';
 	this.hiddenServices = ('disabled' in config ? config['disabled'] : this.hiddenServices);
 	this.hiddenServices = ('hidden' in config ? config['hidden'] : this.hiddenServices);

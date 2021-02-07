@@ -117,3 +117,7 @@
 
 ## 0.7.2
 * Fixed homebridge crash with multiple robots per account
+
+## 0.8.0
+* Add German plugin language (for example, this gives you a "Sauge Küche" Siri command for a zone called "Küche")
+* Added possibility to toggle between languages (English/German) in Homebridge UI Plugin Settings
