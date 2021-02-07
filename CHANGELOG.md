@@ -121,3 +121,6 @@
 ## 0.8.0
 * Add German plugin language (for example, this gives you a "Sauge Küche" Siri command for a zone called "Küche")
 * Added possibility to toggle between languages (English/German) in Homebridge UI Plugin Settings
+
+## 0.8.1
+* Include Robot name in Homekit battery service name

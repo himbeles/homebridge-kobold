@@ -49,11 +49,11 @@ Add the following information to your config file. Change the values for email a
 
 ```json
 "platforms": [
-	{
-		"platform": "KoboldVacuumRobot",
-		"token": "YourToken",
+  {
+    "platform": "KoboldVacuumRobot",
+    "token": "YourToken",
     "language": "de"
-	}
+  }
 ]
 ```
 
@@ -112,13 +112,13 @@ List of plugin features that you don't want to use in homekit (e.g. `dock`, `doc
 
 ```json
 "platforms": [
-	{
-		"platform": "KoboldVacuumRobot",
-		"token": "YourToken",
-		"refresh": "120",
-		"hidden": ["dock", "dockstate", "eco", "nogolines", "extracare", "schedule", "find", "spot"],
+  {
+    "platform": "KoboldVacuumRobot",
+    "token": "YourToken",
+    "refresh": "120",
+    "hidden": ["dock", "dockstate", "eco", "nogolines", "extracare", "schedule", "find", "spot"],
     "language": "de"
-	}
+  }
 ]
 ```
 
