@@ -124,3 +124,6 @@
 
 ## 0.8.1
 * Include Robot name in Homekit battery service name
+
+## 0.8.2
+* Add French plugin language (for example, this gives you a "Aspirer la cuisine" Siri command for a zone called "La cuisine")
