@@ -27,6 +27,12 @@
               "enum": [
                 "de"
               ]
+            },
+            {
+              "title": "French",
+              "enum": [
+                "fr"
+              ]
             }
           ],
           "required": true
