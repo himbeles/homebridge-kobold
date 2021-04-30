@@ -124,3 +124,6 @@
 
 ## 0.8.1
 * Include Robot name in Homekit battery service name
+
+## 0.8.2
+* Eliminate warnings on Homebridge >= 1.3.0 (77945f8 and 877c3d7 on `naofireblade/homebridge-neato`)
