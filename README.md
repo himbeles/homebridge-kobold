@@ -1,3 +1,5 @@
+[![Latest NPM release](https://img.shields.io/npm/v/homebridge-kobold.svg)](https://www.npmjs.com/package/homebridge-kobold)
+
 # homebridge-kobold
 
 This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to control your [Vorwerk Kobold](https://kobold.vorwerk.de/saugroboter/) VR300 vacuum robot. You can download it via [npm](https://www.npmjs.com/package/homebridge-kobold).
