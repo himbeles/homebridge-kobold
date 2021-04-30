@@ -273,7 +273,10 @@ KoboldVacuumRobotAccessory.prototype = {
 					if (this.robot.canResume)
 					{
 						debug(this.name + ": ## Resume cleaning");
-						this.robot.resumeCleaning(callback);
+						this.robot.resumeCleaning((error) =>
+						{
+							callback(error);
+						});
 					}
 					// Start cleaning
 					else if (this.robot.canStart)
@@ -315,7 +318,10 @@ KoboldVacuumRobotAccessory.prototype = {
 				if (this.robot.canPause)
 				{
 					debug(this.name + ": ## Pause cleaning");
-					this.robot.pauseCleaning(callback);
+					this.robot.pauseCleaning((error) =>
+					{
+						callback(error);
+					});
 				}
 				else
 				{
@@ -351,12 +357,8 @@ KoboldVacuumRobotAccessory.prototype = {
 				if (error)
 				{
 					this.log.error("Cannot start cleaning. " + error + ": " + JSON.stringify(result));
-					callback(true);
 				}
-				else
-				{
-					callback();
-				}
+				callback(error);
 			});
 		}
 		// Room cleaning
@@ -367,12 +369,8 @@ KoboldVacuumRobotAccessory.prototype = {
 				if (error)
 				{
 					this.log.error("Cannot start room cleaning. " + error + ": " + JSON.stringify(result));
-					callback(true);
 				}
-				else
-				{
-					callback();
-				}
+				callback(error);
 			});
 		}
 		// Spot cleaning
@@ -383,12 +381,8 @@ KoboldVacuumRobotAccessory.prototype = {
 				if (error)
 				{
 					this.log.error("Cannot start spot cleaning. " + error + ": " + JSON.stringify(result));
-					callback(true);
 				}
-				else
-				{
-					callback();
-				}
+				callback(error);
 			});
 		}
 	},
@@ -412,14 +406,20 @@ KoboldVacuumRobotAccessory.prototype = {
 						setTimeout(() =>
 						{
 							debug(this.name + ": ## Go to dock");
-							this.robot.sendToBase(callback);
+							this.robot.sendToBase(() =>
+							{
+								callback();
+							});
 						}, 1000);
 					});
 				}
 				else if (this.robot.canGoToBase)
 				{
 					debug(this.name + ": ## Go to dock");
-					this.robot.sendToBase(callback);
+					this.robot.sendToBase(() =>
+					{
+						callback();
+					});
 				}
 				else
 				{
@@ -498,12 +498,18 @@ KoboldVacuumRobotAccessory.prototype = {
 			if (on)
 			{
 				debug(this.name + ": " + "Enabled".brightGreen + " Schedule");
-				this.robot.enableSchedule(callback);
+				this.robot.enableSchedule((error) =>
+				{
+					callback(error);
+				});
 			}
 			else
 			{
 				debug(this.name + ": " + "Disabled".red + " Schedule");
-				this.robot.disableSchedule(callback);
+				this.robot.disableSchedule((error) =>
+				{
+					callback(error);
+				});
 			}
 		});
 	},
@@ -523,13 +529,16 @@ KoboldVacuumRobotAccessory.prototype = {
 				this.findMeService.setCharacteristic(Characteristic.On, false);
 			}, 1000);
 
-			this.robot.findMe(callback);
+			this.robot.findMe((error) =>
+			{
+				callback(error);
+			});
 		}
 	},
 
 	getSpotClean: function (callback)
 	{
-		callback();
+		callback(false, this.spotCleanService.getCharacteristic(Characteristic.On).value);
 	},
 
 	setSpotClean: function (on, callback)
@@ -569,7 +578,10 @@ KoboldVacuumRobotAccessory.prototype = {
 				if (this.robot.canPause)
 				{
 					debug(this.name + ": ## Pause cleaning");
-					this.robot.pauseCleaning(callback);
+					this.robot.pauseCleaning((error) =>
+					{
+						callback(error);
+					});
 				}
 				else
 				{
@@ -687,8 +699,13 @@ KoboldVacuumRobotAccessory.prototype = {
 
 			if (this.spotPlusFeatures)
 			{
-					this.spotCleanService.setCharacteristic(SpotWidthCharacteristic, this.robot.spotWidth);
-					this.spotCleanService.setCharacteristic(SpotHeightCharacteristic, this.robot.spotHeight);
+				let widthProps = this.spotCleanService.getCharacteristic(SpotWidthCharacteristic).props;
+				let heightProps = this.spotCleanService.getCharacteristic(SpotHeightCharacteristic).props;
+
+				this.spotCleanService.setCharacteristic(SpotWidthCharacteristic,
+					this.robot.spotWidth >= widthProps.minValue && this.robot.spotWidth <= widthProps.maxValue ? this.robot.spotWidth : widthProps.minValue);
+				this.spotCleanService.setCharacteristic(SpotHeightCharacteristic,
+					this.robot.spotHeight >= heightProps.minValue && this.robot.spotHeight <= heightProps.maxValue ? this.robot.spotHeight : heightProps.minValue);
 			}
 		}
 

@@ -126,4 +126,7 @@
 * Include Robot name in Homekit battery service name
 
 ## 0.8.2
+* Eliminate warnings on Homebridge >= 1.3.0 (77945f8 and 877c3d7 on `naofireblade/homebridge-neato`)
+
+## 0.8.3
 * Add French plugin language (for example, this gives you a "Aspirer la cuisine" Siri command for a zone called "La cuisine")
