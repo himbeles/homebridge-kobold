@@ -27,7 +27,7 @@ The interaction with the Server is handled by the underlying [node-kobold-contro
 - Automatic or periodic refresh of robot state
 - Multiple robots
 
-- German or English Language Setting 
+- German, English or French Language Setting
 
 > <b name="change-room">2</b> You can send the robot from one room to another as well. He will return to the base, wait there some seconds and then starts cleaning the next room.
 
@@ -45,7 +45,7 @@ The interaction with the Server is handled by the underlying [node-kobold-contro
 
 Add the following information to your config file. Change the values for email and password.
 
-### Simple 
+### Simple
 
 ```json
 "platforms": [
@@ -95,7 +95,7 @@ curl -X "POST" "https://mykobold.eu.auth0.com/oauth/token" \
 
 From the output, you want to copy the `id_token` value.
 
-The `language` can be `de` for German, or `en` for English.
+The `language` can be `de` for German, `en` for English, or `fr` for French.
 
 ### Advanced
 
@@ -124,4 +124,4 @@ List of plugin features that you don't want to use in homekit (e.g. `dock`, `doc
 
 ## Tested robots
 
-- Vorwerk Kobold VR300 
+- Vorwerk Kobold VR300

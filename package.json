@@ -16,6 +16,12 @@
     "name": "Luis R.",
     "url2": "https://github.com/himbeles"
   },
+  "contributors": [
+    {
+      "name": "Alexandre L.",
+      "url": "https://github.com/aluini"
+    }
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/himbeles/homebridge-kobold.git"
