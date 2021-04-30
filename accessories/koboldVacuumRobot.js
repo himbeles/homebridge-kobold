@@ -64,6 +64,19 @@ function KoboldVacuumRobotAccessory(platform, robotObject)
 			"findMe": "Finde mich",
 			"cleanSpot": "Spot Reinigung",
 			"battery": "Batterie"
+		},
+		'fr': {
+			"clean": "Aspirer",
+			"clean the": "Aspirer",
+			"goToDock": "Retour à la base",
+			"dockState": "Sur la base",
+			"eco": "Eco mode",
+			"noGoLines": "Lignes NoGo",
+			"extraCare": "Extra Care",
+			"schedule": "Planifier",
+			"findMe": "Me retrouver",
+			"cleanSpot": "Nettoyage local",
+			"battery": "Batterie"
 		}
 	}[this.platform.language]
 
