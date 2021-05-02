@@ -29,7 +29,7 @@
   "dependencies": {
     "colors": "^1.4.0",
     "debug": "^4.1.1",
-    "node-kobold-control": ">=0.4.0",
+    "node-kobold-control": ">=0.4.2",
     "uuid": "^3.3.2"
   }
 }
