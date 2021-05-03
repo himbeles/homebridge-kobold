@@ -45,7 +45,7 @@ The interaction with the Server is handled by the underlying [node-kobold-contro
 
 ## Configuration
 
-Add the following information to your config file. Change the values for email and password.
+Add the following information to your config file. Adapt the value for `token`.
 
 ### Simple
 
@@ -59,7 +59,7 @@ Add the following information to your config file. Change the values for email a
 ]
 ```
 
-You can get a token using the following two curl commands:
+You can get a token using the GUI tool [Kobold Token Getter](https://github.com/himbeles/kobold-token-get) or using the following two curl commands:
 
 ```bash
 # This will trigger the email sending
