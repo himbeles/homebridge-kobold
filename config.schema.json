@@ -9,7 +9,7 @@
             "title": "token",
             "type": "string",
             "required": true,
-            "description": "Your Token"
+            "description": "Your Kobold Token (https://git.io/J3g1b)"
         },
         "language": {
           "title": "language",
