@@ -130,3 +130,6 @@
 
 ## 0.8.3
 * Add French plugin language (for example, this gives you a "Aspirer la cuisine" Siri command for a zone called "La cuisine")
+
+## 0.8.4
+* Link to token getter tool in homebridge UI 
