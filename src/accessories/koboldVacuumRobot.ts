@@ -59,7 +59,7 @@ export class KoboldVacuumRobotAccessory
 
 		// Information
 		this.accessory.getService(this.platform.Service.AccessoryInformation)!
-				.setCharacteristic(this.platform.Characteristic.Manufacturer, "Neato Robotics")
+				.setCharacteristic(this.platform.Characteristic.Manufacturer, "Vorwerk Deutschland Stiftung & Co. KG")
 				.setCharacteristic(this.platform.Characteristic.Model, this.robot.meta.modelName)
 				.setCharacteristic(this.platform.Characteristic.SerialNumber, this.robot._serial)
 				.setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.robot.meta.firmware)

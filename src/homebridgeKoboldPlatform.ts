@@ -45,10 +45,10 @@ export class HomebridgeKoboldPlatform implements DynamicPlatformPlugin
 		try
 		{
 			// Login
-			client.authorize((this.config)["email"], (this.config)["password"], false, (error) => {
+			client.authorize((this.config)["token"], (error) => {
 				if (error)
 				{
-					this.log.error("Cannot connect to neato server. No new robots will be found and existing robots will be unresponsive. Retrying in 5 minutes.");
+					this.log.error("Cannot connect to Vorwerk server. No new robots will be found and existing robots will be unresponsive. Retrying in 5 minutes.");
 					this.log.error("Error: " + error);
 
 					setTimeout(() => {
@@ -61,7 +61,7 @@ export class HomebridgeKoboldPlatform implements DynamicPlatformPlugin
 				client.getRobots((error, robots) => {
 					if (error)
 					{
-						this.log.error("Successful login but can't list the robots in your neato robots. Retrying in 5 minutes.");
+						this.log.error("Successful login but can't list the robots in your Vorwerk robots. Retrying in 5 minutes.");
 						this.log.error("Error: " + error);
 
 						setTimeout(() => {
@@ -70,33 +70,33 @@ export class HomebridgeKoboldPlatform implements DynamicPlatformPlugin
 						return;
 					}
 
-					// Neato robots in account
+					// Vorwerk robots in account
 					if (robots.length === 0)
 					{
-						this.log.error("Neato account has no robots. Did you add your robot here: https://neatorobotics.com/my-neato/ ?");
+						this.log.error("Vorwerk account has no robots.");
 					}
 					else
 					{
-						this.log.info("Neato account has " + robots.length + " robot" + (robots.length === 1 ? "" : "s"));
+						this.log.info("Vorwerk account has " + robots.length + " robot" + (robots.length === 1 ? "" : "s"));
 					}
 
-					// Neato robots in cache
+					// Vorwerk robots in cache
 					this.log.debug("Plugin Cache has " + this.cachedRobotAccessories.length + " robot" + (this.cachedRobotAccessories.length === 1 ? "" : "s"));
 					for (let cachedRobot of this.cachedRobotAccessories)
 					{
 						let accountRobot = robots.find(robot => this.api.hap.uuid.generate(robot._serial) === cachedRobot.UUID);
 						if (accountRobot)
 						{
-							this.log.debug("[" + cachedRobot.displayName + "] Cached robot found in Neato account.");
+							this.log.debug("[" + cachedRobot.displayName + "] Cached robot found in Vorwerk account.");
 						}
 						else
 						{
-							this.log.error("[" + cachedRobot.displayName + "] Cached robot not found in Neato account. Robot will now be removed from homebridge.");
+							this.log.error("[" + cachedRobot.displayName + "] Cached robot not found in Vorwerk account. Robot will now be removed from homebridge.");
 							this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [cachedRobot]);
 						}
 					}
 
-					// Add / Update homebridge accessories with robot information from neato. This must be done for new and existing robots to reflect changes in the name, firmware, pluginconfig etc.
+					// Add / Update homebridge accessories with robot information from Vorwerk. This must be done for new and existing robots to reflect changes in the name, firmware, pluginconfig etc.
 					for (let robot of robots)
 					{
 						// Check if robot already exists as an accessory
@@ -213,7 +213,7 @@ export class HomebridgeKoboldPlatform implements DynamicPlatformPlugin
 		}
 		catch (error)
 		{
-			this.log.error("Can't log on to neato cloud. Please check your internet connection and your credentials. Try again later if the neato servers have issues. Error: " + error);
+			this.log.error("Can't log on to Vorwerk cloud. Please check your internet connection and your credentials. Try again later if the neato servers have issues. Error: " + error);
 		}
 	}
 }
