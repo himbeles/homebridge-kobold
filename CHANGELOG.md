@@ -133,3 +133,18 @@
 
 ## 0.8.4
 * Link to token getter tool in homebridge UI 
+
+## 1.0.0
+Changes adapted from [homebridge-neato](https://github.com/naofireblade/homebridge-neato) to the Vorwerk API:
+
+* Added bin full sensor
+* Added config-ui support for all options
+* Added config parameter **prefix** to use robot name as prefix for service names
+* Retrying mechanism if a robot is not available on homebridge launch
+* Changed service names to not include robot name as prefix by default
+* Changed background update to use better default intervals (1 minute while cleaning, 30 minutes while idle)
+* Changed config parameter **refresh**. Renamed to **backgroundUpdate**, unit changed to minute and will only be used during idle
+* Changed config parameter **hidden**. Renamed to **services**, now takes list of services that should be _visible_. Default are all available services.
+* Fixed robots no longer disappear or change the room after connection issues with the Vorwerk API
+* Fixed plugin no longer crashes if non smart robot is assigned in Vorwerk account
+* Fixed options for eco, nogo lines, extra care are now saved in homebridge and will no longer be overridden by Vorwerk API
