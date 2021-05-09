@@ -2,7 +2,7 @@ import {CharacteristicValue, Logger, PlatformAccessory, PlatformAccessoryEvent, 
 import {HomebridgeKoboldPlatform} from '../homebridgeKoboldPlatform';
 import {Options} from '../models/options';
 import { RobotService, CleanType } from '../models/services';
-import { SERVICES, BACKGROUND_INTERVAL, PREFIX } from '../defaults';
+import { ALL_SERVICES, BACKGROUND_INTERVAL, PREFIX } from '../defaults';
 
 /**
  * Platform Accessory
@@ -55,7 +55,7 @@ export class KoboldVacuumRobotAccessory
 
 		this.backgroundUpdateInterval = KoboldVacuumRobotAccessory.parseBackgroundUpdateInterval(this.config['backgroundUpdate']);
 		this.prefix = this.config['prefix'] || PREFIX;
-		this.availableServices = new Set(this.config['services']) || SERVICES;
+		this.availableServices = new Set(this.config['services']) || ALL_SERVICES;
 
 		this.isSpotCleaning = false;
 
