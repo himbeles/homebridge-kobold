@@ -2,7 +2,7 @@ import {CharacteristicValue, Logger, PlatformAccessory, PlatformAccessoryEvent, 
 import {HomebridgeKoboldPlatform} from '../homebridgeKoboldPlatform';
 import {Options} from '../models/options';
 import { RobotService, CleanType } from '../models/services';
-import { ALL_SERVICES, BACKGROUND_INTERVAL, PREFIX } from '../defaults';
+import { ALL_SERVICES, BACKGROUND_INTERVAL, LOCALE, PREFIX } from '../defaults';
 import { availableLocales, localize } from '../localization';
 
 /**
@@ -32,6 +32,7 @@ export class KoboldVacuumRobotAccessory
 
 	// Config
 	private readonly backgroundUpdateInterval: number;
+	private readonly locale: availableLocales;
 	private readonly prefix: boolean;
 	private readonly availableServices: Set<RobotService>;
 
@@ -56,6 +57,7 @@ export class KoboldVacuumRobotAccessory
 
 		this.backgroundUpdateInterval = KoboldVacuumRobotAccessory.parseBackgroundUpdateInterval(this.config['backgroundUpdate']);
 		this.prefix = this.config['prefix'] || PREFIX;
+		this.locale = this.config['language'] || LOCALE;
 		this.availableServices = new Set(this.config['services']) || ALL_SERVICES;
 
 		this.isSpotCleaning = false;
@@ -175,7 +177,7 @@ export class KoboldVacuumRobotAccessory
 
 	private registerService(serviceName: RobotService, serviceType: WithUUID<typeof Service>) : Service | undefined
 	{
-		const displayName = this.prefix ? this.robot.name + serviceName : localize(serviceName, availableLocales.DE);
+		const displayName = this.prefix ? this.robot.name + serviceName : localize(serviceName, this.locale);
 
 		// query existing service by type and subtype
 		const existingService = this.accessory.getServiceById(serviceType, serviceName)
