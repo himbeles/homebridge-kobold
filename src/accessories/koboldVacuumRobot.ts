@@ -1,8 +1,9 @@
-import {CharacteristicValue, Logger, PlatformAccessory, PlatformAccessoryEvent, PlatformConfig, Service} from 'homebridge';
+import {CharacteristicValue, Logger, PlatformAccessory, PlatformAccessoryEvent, PlatformConfig, Service, WithUUID} from 'homebridge';
 import {HomebridgeKoboldPlatform} from '../homebridgeKoboldPlatform';
 import {Options} from '../models/options';
 import { RobotService, CleanType } from '../models/services';
 import { ALL_SERVICES, BACKGROUND_INTERVAL, PREFIX } from '../defaults';
+import { availableLocales, localize } from '../localization';
 
 /**
  * Platform Accessory
@@ -13,17 +14,17 @@ export class KoboldVacuumRobotAccessory
 {
 	// Homebridge
 	private log: Logger;
-	private batteryService: Service;
-	private readonly cleanService: Service | null;
-	private readonly findMeService: Service | null;
-	private readonly goToDockService: Service | null;
-	private readonly dockStateService: Service | null;
-	private readonly binFullService: Service | null;
-	private readonly ecoService: Service | null;
-	private readonly noGoLinesService: Service | null;
-	private readonly extraCareService: Service | null;
-	private readonly scheduleService: Service | null;
-	private readonly spotCleanService: Service | null;
+	private readonly batteryService?: Service;
+	private readonly cleanService?: Service;
+	private readonly findMeService?: Service;
+	private readonly goToDockService?: Service;
+	private readonly dockStateService?: Service;
+	private readonly binFullService?: Service;
+	private readonly ecoService?: Service;
+	private readonly noGoLinesService?: Service;
+	private readonly extraCareService?: Service;
+	private readonly scheduleService?: Service;
+	private readonly spotCleanService?: Service;
 
 	// Context
 	private robot: any;
@@ -84,23 +85,23 @@ export class KoboldVacuumRobotAccessory
 		});
 
 		// Services
-		this.cleanService = this.getSwitchService(RobotService.CLEAN);
-		this.spotCleanService = this.getSwitchService(RobotService.CLEAN_SPOT);
-		this.goToDockService = this.getSwitchService(RobotService.GO_TO_DOCK);
-		this.dockStateService = this.getOccupancyService(RobotService.DOCKED)
-		this.binFullService = this.getOccupancyService(RobotService.BIN_FULL)
-		this.findMeService = this.getSwitchService(RobotService.FIND_ME);
-		this.scheduleService = this.getSwitchService(RobotService.SCHEDULE);
-		this.ecoService = this.getSwitchService(RobotService.ECO);
-		this.noGoLinesService = this.getSwitchService(RobotService.NOGO_LINES);
-		this.extraCareService = this.getSwitchService(RobotService.EXTRA_CARE);
-		this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)
+		this.cleanService = this.registerService(RobotService.CLEAN, this.platform.Service.Switch);
+		this.spotCleanService = this.registerService(RobotService.CLEAN_SPOT, this.platform.Service.Switch);
+		this.goToDockService = this.registerService(RobotService.GO_TO_DOCK, this.platform.Service.Switch);
+		this.dockStateService = this.registerService(RobotService.DOCKED, this.platform.Service.OccupancySensor)
+		this.binFullService = this.registerService(RobotService.BIN_FULL, this.platform.Service.OccupancySensor)
+		this.findMeService = this.registerService(RobotService.FIND_ME, this.platform.Service.Switch);
+		this.scheduleService = this.registerService(RobotService.SCHEDULE, this.platform.Service.Switch);
+		this.ecoService = this.registerService(RobotService.ECO, this.platform.Service.Switch);
+		this.noGoLinesService = this.registerService(RobotService.NOGO_LINES, this.platform.Service.Switch);
+		this.extraCareService = this.registerService(RobotService.EXTRA_CARE, this.platform.Service.Switch);
+		this.batteryService = this.registerService(RobotService.BATTERY, this.platform.Service.Battery);
 
 		if (this.cleanService)
 		{
 			this.cleanService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setCleanHouse.bind(this))
-					.onGet(this.getCleanHouse.bind(this));
+					.onSet(this.setClean.bind(this))
+					.onGet(this.getClean.bind(this));
 		}
 		if (this.spotCleanService)
 		{
@@ -172,39 +173,28 @@ export class KoboldVacuumRobotAccessory
 		});
 	}
 
-	private getSwitchService(serviceName: RobotService)
+	private registerService(serviceName: RobotService, serviceType: WithUUID<typeof Service>) : Service | undefined
 	{
-		let displayName = this.prefix ? this.robot.name + serviceName : serviceName;
+		const displayName = this.prefix ? this.robot.name + serviceName : localize(serviceName, availableLocales.DE);
+
+		// query existing service by type and subtype
+		const existingService = this.accessory.getServiceById(serviceType, serviceName)
 
 		if (this.availableServices.has(serviceName))
-		{
-			return this.accessory.getService(displayName) || this.accessory.addService(this.platform.Service.Switch, displayName, serviceName);
+		{	
+			if (existingService) {
+				existingService.displayName = displayName // reset display name in case of locale change
+				return this.accessory.getServiceById(serviceType, serviceName)
+			} else {
+				return this.accessory.addService(serviceType, displayName, serviceName);
+			}
 		}
 		else
 		{
-			if (this.accessory.getService(displayName))
+			if (existingService)
 			{
-				this.accessory.removeService(<Service>this.accessory.getService(displayName));
+				this.accessory.removeService(existingService);
 			}
-			return null;
-		}
-	}
-
-	private getOccupancyService(serviceName: RobotService)
-	{
-		let displayName = this.prefix ? this.robot.name + serviceName : serviceName;
-
-		if (this.availableServices.has(serviceName))
-		{
-			return this.accessory.getService(displayName) || this.accessory.addService(this.platform.Service.OccupancySensor, displayName, serviceName);
-		}
-		else
-		{
-			if (this.accessory.getService(displayName))
-			{
-				this.accessory.removeService(<Service>this.accessory.getService(displayName));
-			}
-			return null;
 		}
 	}
 
@@ -219,7 +209,7 @@ export class KoboldVacuumRobotAccessory
 		return backgroundUpdateInterval;
 	}
 
-	async getCleanHouse(): Promise<CharacteristicValue>
+	async getClean(): Promise<CharacteristicValue>
 	{
 		try
 		{
@@ -233,7 +223,7 @@ export class KoboldVacuumRobotAccessory
 		}
 	}
 
-	async setCleanHouse(on: CharacteristicValue)
+	async setClean(on: CharacteristicValue)
 	{
 		this.debug(DebugType.STATUS, "Set CLEAN HOUSE: " + on);
 		try
@@ -530,8 +520,8 @@ export class KoboldVacuumRobotAccessory
 					this.isSpotCleaning = result != null && result.action == 2;
 
 					// Battery
-					this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.robot.charge);
-					this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, this.robot.isCharging);
+					this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.robot.charge);
+					this.batteryService?.updateCharacteristic(this.platform.Characteristic.ChargingState, this.robot.isCharging);
 				});
 			}
 			catch (error)
@@ -577,7 +567,7 @@ export class KoboldVacuumRobotAccessory
 	{
 		if (this.cleanService)
 		{
-			this.cleanService.updateCharacteristic(this.platform.Characteristic.On, await this.getCleanHouse());
+			this.cleanService.updateCharacteristic(this.platform.Characteristic.On, await this.getClean());
 		}
 		if (this.spotCleanService)
 		{
