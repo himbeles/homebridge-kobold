@@ -177,17 +177,17 @@ export class KoboldVacuumRobotAccessory
 
 	private registerService(serviceName: RobotService, serviceType: WithUUID<typeof Service>) : Service | undefined
 	{
-		const displayName = this.prefix ? this.robot.name + serviceName : localize(serviceName, this.locale);
-
+		const displayName = (this.prefix ? (this.robot.name + " ") : "") + localize(serviceName, this.locale);
+		
 		// query existing service by type and subtype
 		const existingService = this.accessory.getServiceById(serviceType, serviceName)
 
 		if (this.availableServices.has(serviceName))
 		{	
-			if (existingService) {
-				existingService.displayName = displayName // reset display name in case of locale change
-				return this.accessory.getServiceById(serviceType, serviceName)
+			if (existingService && existingService.displayName === displayName) {
+				return existingService
 			} else {
+				if (existingService) {this.accessory.removeService(existingService);} // delete to reset display name in case of locale or prefix change
 				return this.accessory.addService(serviceType, displayName, serviceName);
 			}
 		}

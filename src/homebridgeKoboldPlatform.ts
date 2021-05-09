@@ -40,7 +40,7 @@ export class HomebridgeKoboldPlatform implements DynamicPlatformPlugin
 	discoverRobots()
 	{
 		const client = new KoboldApi.Client();
-		this.log.debug("blubb");
+		this.log.debug("blub");
 
 		try
 		{
