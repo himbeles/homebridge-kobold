@@ -1,6 +1,8 @@
 import {CharacteristicValue, Logger, PlatformAccessory, PlatformAccessoryEvent, PlatformConfig, Service} from 'homebridge';
 import {HomebridgeKoboldPlatform} from '../homebridgeKoboldPlatform';
 import {Options} from '../models/options';
+import { RobotService, CleanType } from '../models/services';
+import { SERVICES, BACKGROUND_INTERVAL, PREFIX } from '../defaults';
 
 /**
  * Platform Accessory
@@ -30,7 +32,7 @@ export class KoboldVacuumRobotAccessory
 	// Config
 	private readonly backgroundUpdateInterval: number;
 	private readonly prefix: boolean;
-	private readonly availableServices: string[];
+	private readonly availableServices: Set<RobotService>;
 
 	// Transient
 	private isSpotCleaning: boolean;
@@ -53,7 +55,7 @@ export class KoboldVacuumRobotAccessory
 
 		this.backgroundUpdateInterval = KoboldVacuumRobotAccessory.parseBackgroundUpdateInterval(this.config['backgroundUpdate']);
 		this.prefix = this.config['prefix'] || PREFIX;
-		this.availableServices = this.config['services'] || SERVICES;
+		this.availableServices = new Set(this.config['services']) || SERVICES;
 
 		this.isSpotCleaning = false;
 
@@ -82,7 +84,7 @@ export class KoboldVacuumRobotAccessory
 		});
 
 		// Services
-		this.cleanService = this.getSwitchService(RobotService.CLEAN_HOUSE);
+		this.cleanService = this.getSwitchService(RobotService.CLEAN);
 		this.spotCleanService = this.getSwitchService(RobotService.CLEAN_SPOT);
 		this.goToDockService = this.getSwitchService(RobotService.GO_TO_DOCK);
 		this.dockStateService = this.getOccupancyService(RobotService.DOCKED)
@@ -170,11 +172,11 @@ export class KoboldVacuumRobotAccessory
 		});
 	}
 
-	private getSwitchService(serviceName: string)
+	private getSwitchService(serviceName: RobotService)
 	{
 		let displayName = this.prefix ? this.robot.name + serviceName : serviceName;
 
-		if (this.availableServices.includes(serviceName))
+		if (this.availableServices.has(serviceName))
 		{
 			return this.accessory.getService(displayName) || this.accessory.addService(this.platform.Service.Switch, displayName, serviceName);
 		}
@@ -188,11 +190,11 @@ export class KoboldVacuumRobotAccessory
 		}
 	}
 
-	private getOccupancyService(serviceName: string)
+	private getOccupancyService(serviceName: RobotService)
 	{
 		let displayName = this.prefix ? this.robot.name + serviceName : serviceName;
 
-		if (this.availableServices.includes(serviceName))
+		if (this.availableServices.has(serviceName))
 		{
 			return this.accessory.getService(displayName) || this.accessory.addService(this.platform.Service.OccupancySensor, displayName, serviceName);
 		}
@@ -616,11 +618,6 @@ export class KoboldVacuumRobotAccessory
 	}
 }
 
-enum CleanType
-{
-	ALL,
-	SPOT
-}
 
 enum DebugType
 {
@@ -628,21 +625,3 @@ enum DebugType
 	STATUS,
 	INFO
 }
-
-enum RobotService
-{
-	CLEAN_HOUSE = "Clean house",
-	CLEAN_SPOT = "Clean spot",
-	GO_TO_DOCK = "Go to dock",
-	DOCKED = "Docked sensor",
-	BIN_FULL = "Bin full sensor",
-	FIND_ME = "Find me",
-	SCHEDULE = "Schedule",
-	ECO = "Eco",
-	NOGO_LINES = "Nogo lines",
-	EXTRA_CARE = "Extra care"
-}
-
-const BACKGROUND_INTERVAL = 30;
-const PREFIX = false;
-const SERVICES = Object.values(RobotService);
