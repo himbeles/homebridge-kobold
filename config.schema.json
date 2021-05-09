@@ -48,11 +48,10 @@
       },
       "services": {
         "type": "array",
-        "title": "Enabled Services",
+        "title": "Displayed Services",
         "description": "The services to be made available for Homekit",
         "uniqueItems": true,
         "items": {
-          "title": "hihi",
           "type": "string",
           "enum": [
             "clean",
@@ -70,7 +69,7 @@
           ],
           "enumNames": [
             "Clean",
-            "Clean the",
+            "Clean Zone",
             "Clean Spot",
             "Go to Dock",
             "Docked State",
