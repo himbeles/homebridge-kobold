@@ -6,6 +6,7 @@ export enum CleanType {
 export enum RobotService {
   CLEAN = "clean",
   CLEAN_SPOT = "cleanSpot",
+  CLEAN_ZONE = "cleanZone",
   GO_TO_DOCK = "goToDock",
   DOCKED = "dockState",
   BIN_FULL = "binFull",

@@ -7,6 +7,7 @@ export enum availableLocales {
 const localizationDicts = {
     'en': {
         "clean": "Clean",
+        "cleanZone": "Clean Zone",
         "cleanThe": "Clean the",
         "goToDock": "Go to Dock",
         "dockState": "Docked",
@@ -21,6 +22,7 @@ const localizationDicts = {
     },
     'de': {
         "clean": "Sauge",
+        "cleanZone": "Sauge Zone",
         "cleanThe": "Sauge",
         "goToDock": "Zur Basis",
         "dockState": "In der Basis",
@@ -35,6 +37,7 @@ const localizationDicts = {
     },
     'fr': {
         "clean": "Aspirer",
+        "cleanZone": "Aspirer Zone",
         "cleanThe": "Aspirer",
         "goToDock": "Retour à la base",
         "dockState": "Sur la base",

@@ -55,7 +55,7 @@
           "type": "string",
           "enum": [
             "clean",
-            "cleanThe",
+            "cleanZone",
             "cleanSpot",
             "goToDock",
             "dockState",
@@ -84,7 +84,7 @@
         },
         "default": [
           "clean",
-          "cleanThe",
+          "cleanZone",
           "goToDock",
           "dockState",
           "binFull",

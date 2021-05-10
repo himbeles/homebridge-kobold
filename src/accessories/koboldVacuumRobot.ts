@@ -131,11 +131,11 @@ export class KoboldVacuumRobotAccessory
 			setCharacteristicHandler: this.setGoToDock
 		}]);
 		this.dockStateService = this.registerService(RobotService.DOCKED, this.platform.Service.OccupancySensor, [{
-			characteristic: this.platform.Characteristic.OccupancyDetected, 
+			characteristic: this.platform.Characteristic.OccupancyDetected.OccupancyDetected, 
 			getCharacteristicHandler: this.getDocked,
 		}]);
 		this.binFullService = this.registerService(RobotService.BIN_FULL, this.platform.Service.OccupancySensor, [{
-			characteristic: this.platform.Characteristic.OccupancyDetected, 
+			characteristic: this.platform.Characteristic.OccupancyDetected.OccupancyDetected, 
 			getCharacteristicHandler: this.getBinFull,
 		}]);
 		this.findMeService = this.registerService(RobotService.FIND_ME, this.platform.Service.Switch, [{
@@ -240,7 +240,7 @@ export class KoboldVacuumRobotAccessory
 				service = this.accessory.addService(serviceType, displayName, serviceName);
 			}
 			characteristicHandlers.forEach(ch => {
-				const char = service.getCharacteristic(ch.characteristic)
+				var char = service.getCharacteristic(ch.characteristic)
 				if (ch.getCharacteristicHandler) {char.onGet(ch.getCharacteristicHandler)}
 				if (ch.setCharacteristicHandler) {char.onSet(ch.setCharacteristicHandler)}
 			});
