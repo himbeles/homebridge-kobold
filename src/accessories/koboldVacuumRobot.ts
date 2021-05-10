@@ -1,9 +1,14 @@
-import {CharacteristicValue, Logger, PlatformAccessory, PlatformAccessoryEvent, PlatformConfig, Service, WithUUID} from 'homebridge';
+import {CharacteristicValue, Logger, PlatformAccessory, PlatformAccessoryEvent, PlatformConfig, Service, WithUUID, CharacteristicGetHandler, CharacteristicSetHandler, Characteristic} from 'homebridge';
 import {HomebridgeKoboldPlatform} from '../homebridgeKoboldPlatform';
+import spotRepeat from '../characteristics/spotRepeat';
+import spotWidth from '../characteristics/spotWidth';
+import spotHeight from '../characteristics/spotHeight';
 import {Options} from '../models/options';
+
 import { RobotService, CleanType } from '../models/services';
 import { ALL_SERVICES, BACKGROUND_INTERVAL, LOCALE, PREFIX } from '../defaults';
 import { availableLocales, localize } from '../localization';
+import { CharacteristicHandler } from '../characteristics/characteristicHandler';
 
 /**
  * Platform Accessory
@@ -25,6 +30,7 @@ export class KoboldVacuumRobotAccessory
 	private readonly extraCareService?: Service;
 	private readonly scheduleService?: Service;
 	private readonly spotCleanService?: Service;
+	private spotPlusFeatures: boolean;
 
 	// Context
 	private robot: any;
@@ -54,6 +60,7 @@ export class KoboldVacuumRobotAccessory
 
 		this.robot = accessory.context.robot;
 		this.options = accessory.context.options || new Options();
+		this.spotPlusFeatures = false;
 
 		this.backgroundUpdateInterval = KoboldVacuumRobotAccessory.parseBackgroundUpdateInterval(this.config['backgroundUpdate']);
 		this.prefix = this.config['prefix'] || PREFIX;
@@ -98,64 +105,11 @@ export class KoboldVacuumRobotAccessory
 		this.noGoLinesService = this.registerService(RobotService.NOGO_LINES, this.platform.Service.Switch);
 		this.extraCareService = this.registerService(RobotService.EXTRA_CARE, this.platform.Service.Switch);
 		this.batteryService = this.registerService(RobotService.BATTERY, this.platform.Service.Battery);
-
+		
+		// This should be the main switch if the accessory is grouped in homekit
 		if (this.cleanService)
 		{
-			this.cleanService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setClean.bind(this))
-					.onGet(this.getClean.bind(this));
-		}
-		if (this.spotCleanService)
-		{
-			this.spotCleanService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setSpotClean.bind(this))
-					.onGet(this.getSpotClean.bind(this));
-		}
-		if (this.goToDockService)
-		{
-			this.goToDockService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setGoToDock.bind(this))
-					.onGet(this.getGoToDock.bind(this));
-		}
-		if (this.dockStateService)
-		{
-			this.dockStateService.getCharacteristic(this.platform.Characteristic.OccupancyDetected)
-					.onGet(this.getDocked.bind(this));
-		}
-		if (this.binFullService)
-		{
-			this.binFullService.getCharacteristic(this.platform.Characteristic.OccupancyDetected)
-					.onGet(this.getBinFull.bind(this));
-		}
-		if (this.findMeService)
-		{
-			this.findMeService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setFindMe.bind(this))
-					.onGet(this.getFindMe.bind(this));
-		}
-		if (this.scheduleService)
-		{
-			this.scheduleService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setSchedule.bind(this))
-					.onGet(this.getSchedule.bind(this));
-		}
-		if (this.ecoService)
-		{
-			this.ecoService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setEco.bind(this))
-					.onGet(this.getEco.bind(this));
-		}
-		if (this.noGoLinesService)
-		{
-			this.noGoLinesService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setNoGoLines.bind(this))
-					.onGet(this.getNoGoLines.bind(this));
-		}
-		if (this.extraCareService)
-		{
-			this.extraCareService.getCharacteristic(this.platform.Characteristic.On)
-					.onSet(this.setExtraCare.bind(this))
-					.onGet(this.getExtraCare.bind(this));
+			this.cleanService.setPrimaryService(true);
 		}
 
 		// Start background update
@@ -167,6 +121,10 @@ export class KoboldVacuumRobotAccessory
 				this.options.extraCare = this.robot.navigationMode == 2;
 				this.debug(DebugType.INFO, "Options initially set to eco: " + this.options.eco + ", noGoLines: " + this.options.noGoLines + ", extraCare: " + this.options.extraCare);
 				accessory.context.options = this.options;
+
+				// Add special characteristics to set spot cleaning options
+				this.spotPlusFeatures = ((typeof this.robot.availableServices.spotCleaning !== 'undefined') && this.robot.availableServices.spotCleaning.includes("basic"));
+				this.addSpotCleanCharacteristics();
 			}
 			else
 			{
@@ -175,7 +133,38 @@ export class KoboldVacuumRobotAccessory
 		});
 	}
 
-	private registerService(serviceName: RobotService, serviceType: WithUUID<typeof Service>) : Service | undefined
+	private addSpotCleanCharacteristics()
+	{
+		// Only add characteristics of service is available ond characteristics are not added yet
+		if (this.spotCleanService != null && !this.options.spotCharacteristics)
+		{
+			this.spotCleanService.addCharacteristic(spotRepeat(this.platform.Characteristic))
+					.onGet(this.getSpotRepeat.bind(this))
+					.onSet(this.setSpotRepeat.bind(this));
+
+			// Add these only if the robot supports them
+			if (this.spotPlusFeatures)
+			{
+				this.spotCleanService.addCharacteristic(spotWidth(this.platform.Characteristic))
+						.onGet(this.getSpotWidth.bind(this))
+						.onSet(this.setSpotWidth.bind(this));
+				this.spotCleanService.addCharacteristic(spotHeight(this.platform.Characteristic))
+						.onGet(this.getSpotHeight.bind(this))
+						.onSet(this.setSpotHeight.bind(this));
+			}
+			this.options.spotCharacteristics = true;
+		}
+		else if (this.spotCleanService == null)
+		{
+			this.options.spotCharacteristics = false;
+		}
+	}
+
+	private registerService(
+		serviceName: RobotService, 
+		serviceType: WithUUID<typeof Service>,
+		characteristicHandlers: CharacteristicHandler[] = []
+		) : Service | undefined
 	{
 		const displayName = (this.prefix ? (this.robot.name + " ") : "") + localize(serviceName, this.locale);
 		
@@ -184,12 +173,19 @@ export class KoboldVacuumRobotAccessory
 
 		if (this.availableServices.has(serviceName))
 		{	
+			var service : Service
 			if (existingService && existingService.displayName === displayName) {
-				return existingService
+				service = existingService
 			} else {
 				if (existingService) {this.accessory.removeService(existingService);} // delete to reset display name in case of locale or prefix change
-				return this.accessory.addService(serviceType, displayName, serviceName);
+				service = this.accessory.addService(serviceType, displayName, serviceName);
 			}
+			characteristicHandlers.forEach(ch => {
+				const char = service.getCharacteristic(ch.characteristic)
+				if (ch.getCharacteristicHandler) {char.onGet(ch.getCharacteristicHandler)}
+				if (ch.setCharacteristicHandler) {char.onSet(ch.setCharacteristicHandler)}
+			});
+			return service
 		}
 		else
 		{
