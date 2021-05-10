@@ -93,17 +93,76 @@ export class KoboldVacuumRobotAccessory
 			});
 		});
 
+		[
+			this.getClean,
+			this.setClean,
+			this.getSpotClean, 
+			this.setSpotClean,
+			this.getGoToDock,
+			this.setGoToDock,
+			this.getDocked,
+			this.getBinFull,
+			this.getFindMe,
+			this.setFindMe,
+			this.getSchedule,
+			this.setSchedule,
+			this.getEco, 
+			this.setEco,
+			this.getNoGoLines,
+			this.setNoGoLines,
+			this.getExtraCare,
+			this.setExtraCare
+		].forEach((f)=>f.bind(this))
+
 		// Services
-		this.cleanService = this.registerService(RobotService.CLEAN, this.platform.Service.Switch);
-		this.spotCleanService = this.registerService(RobotService.CLEAN_SPOT, this.platform.Service.Switch);
-		this.goToDockService = this.registerService(RobotService.GO_TO_DOCK, this.platform.Service.Switch);
-		this.dockStateService = this.registerService(RobotService.DOCKED, this.platform.Service.OccupancySensor)
-		this.binFullService = this.registerService(RobotService.BIN_FULL, this.platform.Service.OccupancySensor)
-		this.findMeService = this.registerService(RobotService.FIND_ME, this.platform.Service.Switch);
-		this.scheduleService = this.registerService(RobotService.SCHEDULE, this.platform.Service.Switch);
-		this.ecoService = this.registerService(RobotService.ECO, this.platform.Service.Switch);
-		this.noGoLinesService = this.registerService(RobotService.NOGO_LINES, this.platform.Service.Switch);
-		this.extraCareService = this.registerService(RobotService.EXTRA_CARE, this.platform.Service.Switch);
+		this.cleanService = this.registerService(RobotService.CLEAN, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getClean,
+			setCharacteristicHandler: this.setClean
+		}]);
+		this.spotCleanService = this.registerService(RobotService.CLEAN_SPOT, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getSpotClean,
+			setCharacteristicHandler: this.setSpotClean
+		}]);
+		this.goToDockService = this.registerService(RobotService.GO_TO_DOCK, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getGoToDock,
+			setCharacteristicHandler: this.setGoToDock
+		}]);
+		this.dockStateService = this.registerService(RobotService.DOCKED, this.platform.Service.OccupancySensor, [{
+			characteristic: this.platform.Characteristic.OccupancyDetected, 
+			getCharacteristicHandler: this.getDocked,
+		}]);
+		this.binFullService = this.registerService(RobotService.BIN_FULL, this.platform.Service.OccupancySensor, [{
+			characteristic: this.platform.Characteristic.OccupancyDetected, 
+			getCharacteristicHandler: this.getBinFull,
+		}]);
+		this.findMeService = this.registerService(RobotService.FIND_ME, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getFindMe,
+			setCharacteristicHandler: this.setFindMe
+		}]);
+		this.scheduleService = this.registerService(RobotService.SCHEDULE, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getSchedule,
+			setCharacteristicHandler: this.setSchedule
+		}]);
+		this.ecoService = this.registerService(RobotService.ECO, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getEco,
+			setCharacteristicHandler: this.setEco
+		}]);
+		this.noGoLinesService = this.registerService(RobotService.NOGO_LINES, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getNoGoLines,
+			setCharacteristicHandler: this.setNoGoLines
+		}]);
+		this.extraCareService = this.registerService(RobotService.EXTRA_CARE, this.platform.Service.Switch, [{
+			characteristic: this.platform.Characteristic.On, 
+			getCharacteristicHandler: this.getExtraCare,
+			setCharacteristicHandler: this.setExtraCare
+		}]);
 		this.batteryService = this.registerService(RobotService.BATTERY, this.platform.Service.Battery);
 		
 		// This should be the main switch if the accessory is grouped in homekit
@@ -447,6 +506,39 @@ export class KoboldVacuumRobotAccessory
 		this.options.noGoLines = <boolean>on;
 	}
 
+	getSpotRepeat()
+	{
+		return this.options.spotRepeat;
+	}
+
+	setSpotRepeat(on: CharacteristicValue)
+	{
+		this.debug(DebugType.STATUS, "Set SPOT REPEAT: " + on);
+		this.options.spotRepeat = <boolean>on;
+	}
+
+	getSpotWidth()
+	{
+		return this.options.spotWidth;
+	}
+
+	setSpotWidth(length: CharacteristicValue)
+	{
+		this.debug(DebugType.STATUS, "Set SPOT WIDTH: " + length + " cm");
+		this.options.spotWidth = <number>length;
+	}
+
+	getSpotHeight()
+	{
+		return this.options.spotHeight;
+	}
+
+	setSpotHeight(length: CharacteristicValue)
+	{
+		this.debug(DebugType.STATUS, "Set SPOT HEIGHT: " + length + " cm");
+		this.options.spotHeight = <number>length;
+	}
+
 	getFindMe()
 	{
 		return false;
@@ -482,7 +574,7 @@ export class KoboldVacuumRobotAccessory
 		// Enable shorter background update while cleaning
 		setTimeout(() => {
 			this.updateRobotPeriodically();
-		}, 60 * 1000);
+		}, 2 * 60 * 1000);
 
 		this.log.info(
 				"[" + this.robot.name + "] > Start cleaning with options type: " + CleanType[cleanType] + ", eco: " + this.options.eco + ", noGoLines: " + this.options.noGoLines + ", extraCare: "
@@ -496,7 +588,7 @@ export class KoboldVacuumRobotAccessory
 					await this.robot.startCleaning(this.options.eco, this.options.extraCare ? 2 : 1, this.options.noGoLines);
 					break;
 				case CleanType.SPOT:
-					await this.robot.startSpotCleaning(this.options.eco, this.options.spot.width, this.options.spot.height, this.options.spot.repeat, this.options.extraCare ? 2 : 1);
+					await this.robot.startSpotCleaning(this.options.eco, this.options.spotWidth, this.options.spotHeight, this.options.spotRepeat, this.options.extraCare ? 2 : 1);
 					break;
 			}
 		}
