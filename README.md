@@ -1,4 +1,6 @@
 [![Latest NPM release](https://img.shields.io/npm/v/homebridge-kobold.svg)](https://www.npmjs.com/package/homebridge-kobold)
+[![NPM Downloads](https://img.shields.io/npm/dt/homebridge-kobold.svg)](https://www.npmjs.com/package/homebridge-kobold?activeTab=versions)
+
 
 # homebridge-kobold
 
