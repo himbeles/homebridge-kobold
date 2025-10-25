@@ -83,6 +83,7 @@ export class KoboldVacuumAccessory {
   private readonly refreshSetting;
   private nextRoom: string | null = null;
   private readonly name: string;
+  private pendingBoundaryState: boolean | null = null;
 
   constructor(
     private readonly platform: KoboldHomebridgePlatform,
@@ -340,6 +341,14 @@ export class KoboldVacuumAccessory {
         this.spotCleanService.updateCharacteristic(this.platform.spotCharacteristics.SpotWidthCharacteristic, widthValid);
         this.spotCleanService.updateCharacteristic(this.platform.spotCharacteristics.SpotHeightCharacteristic, heightValid);
       }
+    } else {
+      const isCleaningBoundary = this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id;
+      const boundaryValue = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value;
+      if (boundaryValue !== isCleaningBoundary) {
+        this.cleanService.updateCharacteristic(this.platform.Characteristic.On, isCleaningBoundary);
+      } else if (this.pendingBoundaryState !== null) {
+        this.pendingBoundaryState = null;
+      }
     }
 
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.robot.charge);
@@ -426,6 +435,10 @@ export class KoboldVacuumAccessory {
   }
 
   private async getClean(): Promise<CharacteristicValue> {
+    if (this.boundary && this.pendingBoundaryState !== null) {
+      return this.pendingBoundaryState;
+    }
+
     await this.platform.updateRobot(this.robot._serial);
     const cleaning = this.boundary
       ? this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id
@@ -439,6 +452,11 @@ export class KoboldVacuumAccessory {
     debug(
       `${this.name}: ${on ? 'Enabled '.brightGreen : 'Disabled'.red} Clean ${this.boundary ? JSON.stringify(this.boundary) : ''}`,
     );
+
+    if (this.boundary) {
+      this.pendingBoundaryState = on;
+    }
+
     await this.platform.updateRobot(this.robot._serial);
 
     if (on) {
@@ -465,6 +483,11 @@ export class KoboldVacuumAccessory {
       await this.runCommand(cb => this.robot.pauseCleaning(cb));
     } else {
       debug(`${this.name}: Already paused`);
+    }
+
+    await this.platform.updateRobot(this.robot._serial);
+    if (this.boundary) {
+      this.pendingBoundaryState = null;
     }
   }
 
