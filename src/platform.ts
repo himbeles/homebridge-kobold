@@ -10,6 +10,7 @@ import type {
 
 import Debug from 'debug';
 import control from 'node-kobold-control';
+import type { KoboldRobot, KoboldMap, KoboldRobotState, KoboldMapBoundary } from 'node-kobold-control';
 
 import { buildSpotCharacteristics, type SpotCharacteristicConstructors } from './customCharacteristics.js';
 import { KoboldVacuumAccessory } from './platformAccessory.js';
@@ -32,7 +33,7 @@ export interface KoboldBoundary {
 }
 
 export interface RobotRecord {
-  device: any;
+  device: KoboldRobot;
   meta: Record<string, unknown>;
   availableServices: Record<string, unknown>;
   boundary?: KoboldBoundary;
@@ -182,8 +183,8 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
       });
     });
 
-    const robots = await new Promise<any[]>((resolve, reject) => {
-      client.getRobots((error: unknown, robotList: any[]) => {
+    const robots = await new Promise<KoboldRobot[]>((resolve, reject) => {
+      client.getRobots((error: unknown, robotList: KoboldRobot[]) => {
         if (error) {
           this.log.error(`Successful login but can't connect to your Vorwerk robot: ${error}`);
           reject(error);
@@ -201,8 +202,8 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
     const robotRecords: RobotRecord[] = [];
 
     for (const robot of robots) {
-      const state = await new Promise<any>((resolve, reject) => {
-        robot.getState((error: unknown, result: any) => {
+      const state = await new Promise<KoboldRobotState>((resolve, reject) => {
+        robot.getState((error: unknown, result: KoboldRobotState) => {
           if (error) {
             this.log.error(`Error getting robot meta information: ${error}: ${result}`);
             reject(error);
@@ -219,8 +220,8 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
         roomAccessories: [],
       };
 
-      const maps = await new Promise<any[]>((resolve, reject) => {
-        robot.getPersistentMaps((error: unknown, robotMaps: any[]) => {
+      const maps = await new Promise<KoboldMap[]>((resolve, reject) => {
+        robot.getPersistentMaps((error: unknown, robotMaps: KoboldMap[]) => {
           if (error) {
             this.log.error(`Error updating persistent maps: ${error}: ${robotMaps}`);
             reject(error);
@@ -235,9 +236,9 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
       } else {
         await Promise.all(
           maps.map(
-            (map: any) =>
+            (map: KoboldMap) =>
               new Promise<void>(resolve => {
-                robot.getMapBoundaries(map.id, (error: unknown, result: any) => {
+                robot.getMapBoundaries(map.id, (error: unknown, result: { boundaries: KoboldMapBoundary[] }) => {
                   if (error) {
                     this.log.error(`Error getting boundaries: ${error}: ${result}`);
                   } else {
@@ -277,7 +278,7 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
       return;
     }
 
-    robot.device.maps.forEach((map: any) => {
+    robot.device.maps.forEach((map: KoboldMap) => {
       if (!map.boundaries) {
         return;
       }

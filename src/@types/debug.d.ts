@@ -1,9 +1,11 @@
 declare module 'debug' {
+  type DebugLogArgs = ReadonlyArray<unknown>;
+
   interface Debugger {
-    (formatter: any, ...args: any[]): void;
+    (formatter: unknown, ...args: DebugLogArgs): void;
     extend(namespace: string, delimiter?: string): Debugger;
     enabled: boolean;
-    log: (...args: any[]) => void;
+    log: (...args: DebugLogArgs) => void;
     namespace: string;
   }
 

@@ -1,4 +1,6 @@
 import type { Characteristic, CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { WithUUID } from 'hap-nodejs';
+import type { KoboldRobot } from 'node-kobold-control';
 
 import Debug from 'debug';
 import 'colors';
@@ -57,9 +59,12 @@ interface SpotSettings {
   repeat: boolean;
 }
 
+type HapServiceConstructor = (typeof Service) & WithUUID<typeof Service>;
+type HapCharacteristicConstructor = WithUUID<new () => Characteristic>;
+
 export class KoboldVacuumAccessory {
   private readonly robotObject: RobotRecord;
-  private readonly robot: any;
+  private readonly robot: KoboldRobot;
   private readonly meta: Record<string, unknown>;
   private readonly boundary: KoboldBoundary | null;
   private readonly dict: Dictionary;
@@ -262,7 +267,9 @@ export class KoboldVacuumAccessory {
           this.spotCleanService,
           this.platform.spotCharacteristics.SpotRepeatCharacteristic,
         );
-        this.spotRepeatCharacteristic.onSet(this.setSpotRepeat.bind(this)).onGet(this.getSpotRepeat.bind(this));
+        this.spotRepeatCharacteristic
+          ?.onSet(this.setSpotRepeat.bind(this))
+          .onGet(this.getSpotRepeat.bind(this));
 
         if (this.spotPlusFeatures) {
           this.spotWidthCharacteristic = this.getOrAddCharacteristic(
@@ -274,8 +281,12 @@ export class KoboldVacuumAccessory {
             this.platform.spotCharacteristics.SpotHeightCharacteristic,
           );
 
-          this.spotWidthCharacteristic.onSet(this.setSpotWidth.bind(this)).onGet(this.getSpotWidth.bind(this));
-          this.spotHeightCharacteristic.onSet(this.setSpotHeight.bind(this)).onGet(this.getSpotHeight.bind(this));
+          this.spotWidthCharacteristic
+            ?.onSet(this.setSpotWidth.bind(this))
+            .onGet(this.getSpotWidth.bind(this));
+          this.spotHeightCharacteristic
+            ?.onSet(this.setSpotHeight.bind(this))
+            .onGet(this.getSpotHeight.bind(this));
         }
       }
     }
@@ -283,76 +294,77 @@ export class KoboldVacuumAccessory {
 
   updated(): void {
     if (!this.boundary) {
-      const currentClean = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value;
-      if (currentClean !== this.robot.canPause) {
-        this.cleanService.updateCharacteristic(this.platform.Characteristic.On, this.robot.canPause);
+      const currentClean = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+      const robotCanPause = !!this.robot.canPause;
+      if ((currentClean ?? false) !== robotCanPause) {
+        this.cleanService.updateCharacteristic(this.platform.Characteristic.On, robotCanPause);
       }
 
       if (this.goToDockService) {
-        const dockValue = this.goToDockService.getCharacteristic(this.platform.Characteristic.On).value;
-        if (dockValue === true && this.robot.dockHasBeenSeen) {
+        const dockValue = this.goToDockService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+        if (dockValue === true && !!this.robot.dockHasBeenSeen) {
           this.goToDockService.updateCharacteristic(this.platform.Characteristic.On, false);
         }
       }
 
       if (this.scheduleService) {
-        const scheduleValue = this.scheduleService.getCharacteristic(this.platform.Characteristic.On).value;
-        if (scheduleValue !== this.robot.isScheduleEnabled) {
+        const scheduleValue = this.scheduleService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+        const scheduleEnabled = !!this.robot.isScheduleEnabled;
+        if ((scheduleValue ?? false) !== scheduleEnabled) {
           this.scheduleService.updateCharacteristic(
             this.platform.Characteristic.On,
-            this.robot.isScheduleEnabled,
+            scheduleEnabled,
           );
         }
       }
 
+      const isDocked = !!this.robot.isDocked;
       this.dockStateService?.updateCharacteristic(
         this.platform.Characteristic.OccupancyDetected,
-        this.robot.isDocked ? 1 : 0,
+        isDocked ? 1 : 0,
       );
 
-      this.ecoService?.updateCharacteristic(this.platform.Characteristic.On, this.robot.eco);
-      this.noGoLinesService?.updateCharacteristic(this.platform.Characteristic.On, this.robot.noGoLines);
+      this.ecoService?.updateCharacteristic(this.platform.Characteristic.On, !!this.robot.eco);
+      this.noGoLinesService?.updateCharacteristic(this.platform.Characteristic.On, !!this.robot.noGoLines);
       this.extraCareService?.updateCharacteristic(
         this.platform.Characteristic.On,
         this.robot.navigationMode === 2,
       );
 
-      if (this.spotCleanService && this.spotRepeatCharacteristic) {
-        this.spotCleanService.updateCharacteristic(
-          this.platform.spotCharacteristics.SpotRepeatCharacteristic,
-          this.robot.spotRepeat,
-        );
-      }
+      const repeatValue = this.robot.spotRepeat ?? false;
+      this.spotRepeatCharacteristic?.updateValue(repeatValue);
 
-      if (this.spotPlusFeatures && this.spotCleanService && this.spotWidthCharacteristic && this.spotHeightCharacteristic) {
+      if (this.spotPlusFeatures && this.spotWidthCharacteristic && this.spotHeightCharacteristic) {
         const widthProps = this.spotWidthCharacteristic.props;
         const heightProps = this.spotHeightCharacteristic.props;
 
-        const widthValid = this.robot.spotWidth >= (widthProps.minValue ?? 0)
+        const widthValid = this.robot.spotWidth !== undefined
+          && this.robot.spotWidth >= (widthProps.minValue ?? 0)
           && this.robot.spotWidth <= (widthProps.maxValue ?? Number.MAX_SAFE_INTEGER)
           ? this.robot.spotWidth
-          : widthProps.minValue ?? this.robot.spotWidth;
+          : widthProps.minValue ?? this.robot.spotWidth ?? widthProps.minValue ?? 0;
 
-        const heightValid = this.robot.spotHeight >= (heightProps.minValue ?? 0)
+        const heightValid = this.robot.spotHeight !== undefined
+          && this.robot.spotHeight >= (heightProps.minValue ?? 0)
           && this.robot.spotHeight <= (heightProps.maxValue ?? Number.MAX_SAFE_INTEGER)
           ? this.robot.spotHeight
-          : heightProps.minValue ?? this.robot.spotHeight;
+          : heightProps.minValue ?? this.robot.spotHeight ?? heightProps.minValue ?? 0;
 
-        this.spotCleanService.updateCharacteristic(this.platform.spotCharacteristics.SpotWidthCharacteristic, widthValid);
-        this.spotCleanService.updateCharacteristic(this.platform.spotCharacteristics.SpotHeightCharacteristic, heightValid);
+        this.spotWidthCharacteristic.updateValue(widthValid);
+        this.spotHeightCharacteristic.updateValue(heightValid);
       }
     } else {
-      const isCleaningBoundary = this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id;
-      const boundaryValue = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value;
-      if (boundaryValue !== isCleaningBoundary) {
+      const isCleaningBoundary = !!this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id;
+      const boundaryValue = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+      if ((boundaryValue ?? false) !== isCleaningBoundary) {
         this.cleanService.updateCharacteristic(this.platform.Characteristic.On, isCleaningBoundary);
       } else if (this.pendingBoundaryState !== null) {
         this.pendingBoundaryState = null;
       }
     }
 
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.robot.charge);
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.ChargingState, this.robot.isCharging);
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.robot.charge ?? 0);
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.ChargingState, !!this.robot.isCharging);
 
     if (this.nextRoom != null && this.robot.isDocked && this.boundary) {
       void this.clean().then(() => {
@@ -401,19 +413,19 @@ export class KoboldVacuumAccessory {
   }
 
   private createService(
-    serviceType: new (displayName: string, subtype?: string) => Service,
+    serviceType: HapServiceConstructor,
     name: string,
     subtype: string,
     expose = true,
   ): Service {
-    const existing = this.accessory.getServiceById(serviceType as any, subtype);
+    const existing = this.accessory.getServiceById(serviceType, subtype);
 
     if (expose) {
       if (existing) {
         existing.setCharacteristic(this.platform.Characteristic.Name, name);
         return existing;
       }
-      return this.accessory.addService(serviceType as any, name, subtype);
+      return this.accessory.addService(serviceType, name, subtype);
     }
 
     if (existing) {
@@ -423,11 +435,12 @@ export class KoboldVacuumAccessory {
     return new serviceType(name, subtype);
   }
 
-  private getOrAddCharacteristic(service: Service, characteristic: any) {
-    const ctor = characteristic as any;
-    return service.testCharacteristic(ctor)
-      ? service.getCharacteristic(ctor)
-      : service.addCharacteristic(ctor);
+  private getOrAddCharacteristic(service: Service, characteristic: HapCharacteristicConstructor) {
+    const ctor = characteristic as unknown as WithUUID<typeof Characteristic>;
+    if (service.testCharacteristic(ctor.UUID)) {
+      return service.getCharacteristic(ctor.UUID);
+    }
+    return service.addCharacteristic(characteristic);
   }
 
   private asBool(value: CharacteristicValue): boolean {
@@ -441,8 +454,8 @@ export class KoboldVacuumAccessory {
 
     await this.platform.updateRobot(this.robot._serial);
     const cleaning = this.boundary
-      ? this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id
-      : this.robot.canPause;
+      ? !!this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id
+      : !!this.robot.canPause;
     debug(`${this.name}: Cleaning is ${cleaning ? 'ON'.brightGreen : 'OFF'.red}`);
     return cleaning;
   }
@@ -503,9 +516,9 @@ export class KoboldVacuumAccessory {
     const noGoLines = !!this.robot.noGoLines;
     const room = this.boundary ? this.boundary.name : '';
 
-    debug(
-      `${this.name}: ## Start cleaning (${room !== '' ? `${room} ` : ''}eco: ${eco}, extraCare: ${extraCare}, nogoLines: ${noGoLines}, spot: ${JSON.stringify(spot)})`,
-    );
+    const roomLabel = room !== '' ? `${room} ` : '';
+    const detailText = `eco: ${eco}, extraCare: ${extraCare}, nogoLines: ${noGoLines}, spot: ${JSON.stringify(spot)}`;
+    debug(`${this.name}: ## Start cleaning (${roomLabel}${detailText})`);
 
     if (!this.boundary && !spot) {
       await this.runCommand((cb) => this.robot.startCleaning(eco, extraCare ? 2 : 1, noGoLines, cb), (error, result) => {
@@ -516,11 +529,13 @@ export class KoboldVacuumAccessory {
         this.platform.log.error(`Cannot start room cleaning. ${error}: ${JSON.stringify(result)}`);
       });
     } else if (spot) {
+      const widthValue = spot.width ?? this.robot.spotWidth ?? this.spotWidthCharacteristic?.props.minValue ?? 100;
+      const heightValue = spot.height ?? this.robot.spotHeight ?? this.spotHeightCharacteristic?.props.minValue ?? 100;
       await this.runCommand((cb) =>
         this.robot.startSpotCleaning(
           eco,
-          spot.width,
-          spot.height,
+          widthValue,
+          heightValue,
           spot.repeat,
           extraCare ? 2 : 1,
           cb,
@@ -546,8 +561,9 @@ export class KoboldVacuumAccessory {
 
   private async getEco(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: Eco Mode is ${this.robot.eco ? 'ON'.brightGreen : 'OFF'.red}`);
-    return this.robot.eco;
+    const eco = !!this.robot.eco;
+    debug(`${this.name}: Eco Mode is ${eco ? 'ON'.brightGreen : 'OFF'.red}`);
+    return eco;
   }
 
   private async setEco(value: CharacteristicValue): Promise<void> {
@@ -558,8 +574,9 @@ export class KoboldVacuumAccessory {
 
   private async getNoGoLines(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: NoGoLine is ${this.robot.eco ? 'ON'.brightGreen : 'OFF'.red}`);
-    return this.robot.noGoLines ? 1 : 0;
+    const noGo = !!this.robot.noGoLines;
+    debug(`${this.name}: NoGoLine is ${noGo ? 'ON'.brightGreen : 'OFF'.red}`);
+    return noGo ? 1 : 0;
   }
 
   private async setNoGoLines(value: CharacteristicValue): Promise<void> {
@@ -582,8 +599,9 @@ export class KoboldVacuumAccessory {
 
   private async getSchedule(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: Schedule is ${this.robot.eco ? 'ON'.brightGreen : 'OFF'.red}`);
-    return this.robot.isScheduleEnabled;
+    const enabled = !!this.robot.isScheduleEnabled;
+    debug(`${this.name}: Schedule is ${enabled ? 'ON'.brightGreen : 'OFF'.red}`);
+    return enabled;
   }
 
   private async setSchedule(value: CharacteristicValue): Promise<void> {
@@ -618,7 +636,9 @@ export class KoboldVacuumAccessory {
   }
 
   private async getSpotClean(): Promise<CharacteristicValue> {
-    return this.spotCleanService?.getCharacteristic(this.platform.Characteristic.On).value ?? false;
+    const characteristic = this.spotCleanService?.getCharacteristic(this.platform.Characteristic.On);
+    const spotService = characteristic?.value as boolean | undefined;
+    return spotService ?? false;
   }
 
   private async setSpotClean(value: CharacteristicValue): Promise<void> {
@@ -626,11 +646,11 @@ export class KoboldVacuumAccessory {
 
     const spot: SpotSettings = {
       width: this.spotPlusFeatures && this.spotWidthCharacteristic
-        ? (this.spotWidthCharacteristic.value as number)
-        : null,
+        ? ((this.spotWidthCharacteristic.value as number | undefined) ?? this.robot.spotWidth ?? this.spotWidthCharacteristic.props.minValue ?? 100)
+        : this.robot.spotWidth ?? null,
       height: this.spotPlusFeatures && this.spotHeightCharacteristic
-        ? (this.spotHeightCharacteristic.value as number)
-        : null,
+        ? ((this.spotHeightCharacteristic.value as number | undefined) ?? this.robot.spotHeight ?? this.spotHeightCharacteristic.props.minValue ?? 100)
+        : this.robot.spotHeight ?? null,
       repeat: !!(this.spotRepeatCharacteristic?.value ?? false),
     };
 
@@ -655,30 +675,35 @@ export class KoboldVacuumAccessory {
 
   private async getSpotWidth(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: Spot width  is ${this.robot.spotWidth}cm`);
-    return this.robot.spotWidth;
+    const width = this.robot.spotWidth ?? this.spotWidthCharacteristic?.props.minValue ?? 100;
+    debug(`${this.name}: Spot width  is ${width}cm`);
+    return width;
   }
 
   private async setSpotWidth(value: CharacteristicValue): Promise<void> {
-    this.robot.spotWidth = value as number;
-    debug(`${this.name}: Set spot width to ${value}cm`);
+    const numericValue = typeof value === 'number' ? value : Number(value);
+    this.robot.spotWidth = Number.isNaN(numericValue) ? this.robot.spotWidth ?? 100 : numericValue;
+    debug(`${this.name}: Set spot width to ${this.robot.spotWidth}cm`);
   }
 
   private async getSpotHeight(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: Spot height is ${this.robot.spotHeight}cm`);
-    return this.robot.spotHeight;
+    const height = this.robot.spotHeight ?? this.spotHeightCharacteristic?.props.minValue ?? 100;
+    debug(`${this.name}: Spot height is ${height}cm`);
+    return height;
   }
 
   private async setSpotHeight(value: CharacteristicValue): Promise<void> {
-    this.robot.spotHeight = value as number;
-    debug(`${this.name}: Set spot height to ${value}cm`);
+    const numericValue = typeof value === 'number' ? value : Number(value);
+    this.robot.spotHeight = Number.isNaN(numericValue) ? this.robot.spotHeight ?? 100 : numericValue;
+    debug(`${this.name}: Set spot height to ${this.robot.spotHeight}cm`);
   }
 
   private async getSpotRepeat(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: Spot repeat is ${this.robot.spotRepeat ? 'ON'.brightGreen : 'OFF'.red}`);
-    return this.robot.spotRepeat;
+    const repeat = this.robot.spotRepeat ?? false;
+    debug(`${this.name}: Spot repeat is ${repeat ? 'ON'.brightGreen : 'OFF'.red}`);
+    return repeat;
   }
 
   private async setSpotRepeat(value: CharacteristicValue): Promise<void> {
@@ -689,20 +714,23 @@ export class KoboldVacuumAccessory {
 
   private async getDock(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: The Dock is ${this.robot.isDocked ? 'OCCUPIED'.brightGreen : 'NOT OCCUPIED'.red}`);
-    return this.robot.isDocked ? 1 : 0;
+    const isDocked = !!this.robot.isDocked;
+    debug(`${this.name}: The Dock is ${isDocked ? 'OCCUPIED'.brightGreen : 'NOT OCCUPIED'.red}`);
+    return isDocked ? 1 : 0;
   }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: Battery  is ${this.robot.charge}%`);
-    return this.robot.charge;
+    const charge = this.robot.charge ?? 0;
+    debug(`${this.name}: Battery  is ${charge}%`);
+    return charge;
   }
 
   private async getBatteryChargingState(): Promise<CharacteristicValue> {
     await this.platform.updateRobot(this.robot._serial);
-    debug(`${this.name}: Battery  is ${this.robot.isCharging ? 'CHARGING'.brightGreen : 'NOT CHARGING'.red}`);
-    return this.robot.isCharging;
+    const isCharging = !!this.robot.isCharging;
+    debug(`${this.name}: Battery  is ${isCharging ? 'CHARGING'.brightGreen : 'NOT CHARGING'.red}`);
+    return isCharging;
   }
 
   private async goToDockSequence(): Promise<void> {
@@ -720,7 +748,7 @@ export class KoboldVacuumAccessory {
     }
   }
 
-  private async runCommand<T = void>(
+  private async runCommand<T = unknown>(
     command: (callback: (error?: unknown, result?: T) => void) => void,
     onError?: (error: unknown, result?: T) => void,
   ): Promise<T | undefined> {
