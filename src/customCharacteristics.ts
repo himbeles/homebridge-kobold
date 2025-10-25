@@ -1,5 +1,6 @@
 import type { API } from 'homebridge';
 import { Perms } from 'hap-nodejs';
+import type { Characteristic as HapCharacteristic, WithUUID } from 'hap-nodejs';
 
 export const CustomUUID = {
   SpotCleanWidth: 'A7889A9A-2F27-4293-BEF8-3FE805B36F4E',
@@ -7,10 +8,12 @@ export const CustomUUID = {
   SpotCleanRepeat: '1E79C603-63B8-4E6A-9CE1-D31D67981831',
 } as const;
 
+type SpotCharacteristicClass = WithUUID<new () => HapCharacteristic>;
+
 export interface SpotCharacteristicConstructors {
-  SpotWidthCharacteristic: any;
-  SpotHeightCharacteristic: any;
-  SpotRepeatCharacteristic: any;
+  SpotWidthCharacteristic: SpotCharacteristicClass;
+  SpotHeightCharacteristic: SpotCharacteristicClass;
+  SpotRepeatCharacteristic: SpotCharacteristicClass;
 }
 
 export const buildSpotCharacteristics = (api: API): SpotCharacteristicConstructors => {
@@ -59,8 +62,8 @@ export const buildSpotCharacteristics = (api: API): SpotCharacteristicConstructo
   };
 
   return {
-    SpotWidthCharacteristic: SpotWidthCharacteristic as unknown as typeof api.hap.Characteristic,
-    SpotHeightCharacteristic: SpotHeightCharacteristic as unknown as typeof api.hap.Characteristic,
-    SpotRepeatCharacteristic: SpotRepeatCharacteristic as unknown as typeof api.hap.Characteristic,
+    SpotWidthCharacteristic: SpotWidthCharacteristic as SpotCharacteristicClass,
+    SpotHeightCharacteristic: SpotHeightCharacteristic as SpotCharacteristicClass,
+    SpotRepeatCharacteristic: SpotRepeatCharacteristic as SpotCharacteristicClass,
   };
 };
