@@ -437,8 +437,8 @@ export class KoboldVacuumAccessory {
 
   private getOrAddCharacteristic(service: Service, characteristic: HapCharacteristicConstructor) {
     const ctor = characteristic as unknown as WithUUID<typeof Characteristic>;
-    if (service.testCharacteristic(ctor.UUID)) {
-      return service.getCharacteristic(ctor.UUID);
+    if (service.testCharacteristic(ctor)) {
+      return service.getCharacteristic(characteristic);
     }
     return service.addCharacteristic(characteristic);
   }
