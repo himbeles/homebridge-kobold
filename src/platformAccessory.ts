@@ -446,17 +446,21 @@ export class KoboldVacuumAccessory {
 
     if (expose) {
       if (existing) {
-        existing.setCharacteristic(this.platform.Characteristic.Name, name);
+        this.applyConfiguredName(existing, name);
         return existing;
       }
-      return this.accessory.addService(serviceType, name, subtype);
+      const service = this.accessory.addService(serviceType, name, subtype);
+      this.applyConfiguredName(service, name);
+      return service;
     }
 
     if (existing) {
       this.accessory.removeService(existing);
     }
 
-    return new serviceType(name, subtype);
+    const service = new serviceType(name, subtype);
+    this.applyConfiguredName(service, name);
+    return service;
   }
 
   private getOrAddCharacteristic(service: Service, characteristic: HapCharacteristicConstructor) {
@@ -465,6 +469,12 @@ export class KoboldVacuumAccessory {
       return service.getCharacteristic(characteristic);
     }
     return service.addCharacteristic(characteristic);
+  }
+
+  private applyConfiguredName(service: Service, name: string): void {
+    service.setCharacteristic(this.platform.Characteristic.Name, name);
+    service.addOptionalCharacteristic(this.platform.Characteristic.ConfiguredName);
+    service.setCharacteristic(this.platform.Characteristic.ConfiguredName, name);
   }
 
   private asBool(value: CharacteristicValue): boolean {
