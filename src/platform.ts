@@ -36,9 +36,7 @@ export interface RobotRecord {
   device: KoboldRobot;
   meta: Record<string, unknown>;
   availableServices: Record<string, unknown>;
-  boundary?: KoboldBoundary;
   mainAccessory?: KoboldVacuumAccessory;
-  roomAccessories: KoboldVacuumAccessory[];
   timer?: NodeJS.Timeout;
   lastUpdate?: Date;
 }
@@ -53,7 +51,6 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly discoveredCacheUUIDs: string[] = [];
 
   public readonly robots: RobotRecord[] = [];
-  public boundaryNames: string[] = [];
   public nextRoom: string | null = null;
   public readonly language: string;
   public readonly hiddenServices: string[] | string;
@@ -139,14 +136,12 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
       return;
     }
 
-    this.boundaryNames = [];
     this.discoveredCacheUUIDs.length = 0;
 
     try {
       const robots = await this.loadRobots();
       this.robots.length = 0;
       robots.forEach(robot => {
-        robot.roomAccessories = [];
         this.robots.push(robot);
       });
 
@@ -155,7 +150,6 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
           `Found robot #${index + 1} named "${robot.device.name}" with serial "${robot.device._serial.substring(0, 9)}XXXXXXXXXXXX"`,
         );
         this.setupMainAccessory(robot);
-        this.setupBoundaryAccessories(robot);
         this.updateRobotTimer(robot.device._serial);
       });
     } catch (error) {
@@ -217,7 +211,6 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
         device: robot,
         meta: state.meta ?? {},
         availableServices: state.availableServices ?? {},
-        roomAccessories: [],
       };
 
       const maps = await new Promise<KoboldMap[]>((resolve, reject) => {
@@ -271,37 +264,6 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
     robot.mainAccessory = handler;
 
     this.discoveredCacheUUIDs.push(uuid);
-  }
-
-  private setupBoundaryAccessories(robot: RobotRecord) {
-    if (!robot.device.maps) {
-      return;
-    }
-
-    robot.device.maps.forEach((map: KoboldMap) => {
-      if (!map.boundaries) {
-        return;
-      }
-
-      map.boundaries.forEach((boundary: KoboldBoundary) => {
-        if (boundary.type !== 'polygon') {
-          return;
-        }
-
-        const uuid = this.api.hap.uuid.generate(`${robot.device._serial}:${boundary.id}`);
-        const accessory = this.prepareAccessory(uuid, `${robot.device.name} - ${boundary.name}`);
-
-        accessory.context.robotSerial = robot.device._serial;
-        accessory.context.boundaryId = boundary.id;
-        accessory.context.boundaryName = boundary.name;
-
-        robot.boundary = boundary;
-        const handler = new KoboldVacuumAccessory(this, accessory, robot, boundary);
-        robot.roomAccessories.push(handler);
-
-        this.discoveredCacheUUIDs.push(uuid);
-      });
-    });
   }
 
   private prepareAccessory(uuid: string, name: string): PlatformAccessory {
@@ -366,7 +328,6 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
       clearTimeout(robot.timer);
 
       robot.mainAccessory?.updated();
-      robot.roomAccessories.forEach(accessory => accessory.updated());
 
       if (this.refresh !== 'auto' && this.refresh !== 0) {
         debug(`${robot.device.name}: ++ Next background update in ${this.refresh} seconds`);

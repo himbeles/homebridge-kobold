@@ -66,7 +66,6 @@ export class KoboldVacuumAccessory {
   private readonly robotObject: RobotRecord;
   private readonly robot: KoboldRobot;
   private readonly meta: Record<string, unknown>;
-  private readonly boundary: KoboldBoundary | null;
   private readonly dict: Dictionary;
 
   private readonly cleanService: Service;
@@ -88,18 +87,18 @@ export class KoboldVacuumAccessory {
   private readonly refreshSetting;
   private nextRoom: string | null = null;
   private readonly name: string;
-  private pendingBoundaryState: boolean | null = null;
+  private readonly boundaryServices: Map<string, Service> = new Map();
+  private readonly boundaryLabels: Map<string, string> = new Map();
+  private readonly pendingBoundaryStates: Map<string, boolean | null> = new Map();
 
   constructor(
     private readonly platform: KoboldHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
     robotObject: RobotRecord,
-    boundary?: KoboldBoundary,
   ) {
     this.robotObject = robotObject;
     this.robot = robotObject.device;
     this.meta = robotObject.meta;
-    this.boundary = boundary ?? null;
     this.refreshSetting = this.platform.refresh;
 
     this.dict = dictionaries[this.platform.language as keyof typeof dictionaries] ?? dictionaries.en;
@@ -107,11 +106,11 @@ export class KoboldVacuumAccessory {
       ? this.robotObject.availableServices.spotCleaning.includes('basic')
       : false;
 
-    this.name = this.resolveName();
+    this.name = this.robot.name;
     this.accessory.displayName = this.name;
     this.accessory.context.displayName = this.name;
     this.accessory.context.robotSerial = this.robot._serial;
-    this.accessory.context.boundaryId = this.boundary ? this.boundary.id : null;
+    this.accessory.context.boundaryId = null;
 
     const modelName = typeof this.meta.modelName === 'string' ? this.meta.modelName : 'Unknown Model';
     const firmware = typeof this.meta.firmware === 'string' ? this.meta.firmware : 'Unknown';
@@ -121,45 +120,33 @@ export class KoboldVacuumAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, modelName)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.robot._serial)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, firmware)
-      .setCharacteristic(
-        this.platform.Characteristic.Name,
-        this.boundary ? `${this.robot.name} - ${this.boundary.name}` : this.robot.name,
-      );
+      .setCharacteristic(this.platform.Characteristic.Name, this.robot.name);
 
-    if (this.boundary) {
-      const serviceName = this.boundaryServiceName();
-      this.cleanService = this.createService(
-        this.platform.Service.Switch,
-        serviceName,
-        `cleanBoundary:${this.boundary.id}`,
-      );
-    } else {
-      this.cleanService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.clean}`,
-        'clean',
-      );
-    }
+    this.cleanService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.clean}`,
+      'clean',
+    );
 
     this.cleanService.getCharacteristic(this.platform.Characteristic.On)
-      .onSet(this.setClean.bind(this))
-      .onGet(this.getClean.bind(this));
+      .onSet(value => this.setClean(value))
+      .onGet(() => this.getClean());
 
     this.batteryService = this.createService(
       this.platform.Service.Battery,
       `${this.name} ${this.dict.battery}`,
       'battery',
-      !this.boundary,
+      true,
     );
 
-    if (this.batteryService && !this.boundary) {
+    if (this.batteryService) {
       this.batteryService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
         .onGet(this.getBatteryLevel.bind(this));
       this.batteryService.getCharacteristic(this.platform.Characteristic.ChargingState)
         .onGet(this.getBatteryChargingState.bind(this));
     }
 
-    if (!this.boundary) {
+    
       const exposeDock = !this.platform.isServiceHidden('dock');
       this.goToDockService = this.createService(
         this.platform.Service.Switch,
@@ -289,87 +276,97 @@ export class KoboldVacuumAccessory {
             .onGet(this.getSpotHeight.bind(this));
         }
       }
-    }
+
+    this.setupBoundaryServices();
   }
 
   updated(): void {
-    if (!this.boundary) {
-      const currentClean = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
-      const robotCanPause = !!this.robot.canPause;
-      if ((currentClean ?? false) !== robotCanPause) {
-        this.cleanService.updateCharacteristic(this.platform.Characteristic.On, robotCanPause);
-      }
+    const currentClean = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+    const robotCanPause = !!this.robot.canPause;
+    if ((currentClean ?? false) !== robotCanPause) {
+      this.cleanService.updateCharacteristic(this.platform.Characteristic.On, robotCanPause);
+    }
 
-      if (this.goToDockService) {
-        const dockValue = this.goToDockService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
-        if (dockValue === true && !!this.robot.dockHasBeenSeen) {
-          this.goToDockService.updateCharacteristic(this.platform.Characteristic.On, false);
-        }
-      }
-
-      if (this.scheduleService) {
-        const scheduleValue = this.scheduleService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
-        const scheduleEnabled = !!this.robot.isScheduleEnabled;
-        if ((scheduleValue ?? false) !== scheduleEnabled) {
-          this.scheduleService.updateCharacteristic(
-            this.platform.Characteristic.On,
-            scheduleEnabled,
-          );
-        }
-      }
-
-      const isDocked = !!this.robot.isDocked;
-      this.dockStateService?.updateCharacteristic(
-        this.platform.Characteristic.OccupancyDetected,
-        isDocked ? 1 : 0,
-      );
-
-      this.ecoService?.updateCharacteristic(this.platform.Characteristic.On, !!this.robot.eco);
-      this.noGoLinesService?.updateCharacteristic(this.platform.Characteristic.On, !!this.robot.noGoLines);
-      this.extraCareService?.updateCharacteristic(
-        this.platform.Characteristic.On,
-        this.robot.navigationMode === 2,
-      );
-
-      const repeatValue = this.robot.spotRepeat ?? false;
-      this.spotRepeatCharacteristic?.updateValue(repeatValue);
-
-      if (this.spotPlusFeatures && this.spotWidthCharacteristic && this.spotHeightCharacteristic) {
-        const widthProps = this.spotWidthCharacteristic.props;
-        const heightProps = this.spotHeightCharacteristic.props;
-
-        const widthValid = this.robot.spotWidth !== undefined
-          && this.robot.spotWidth >= (widthProps.minValue ?? 0)
-          && this.robot.spotWidth <= (widthProps.maxValue ?? Number.MAX_SAFE_INTEGER)
-          ? this.robot.spotWidth
-          : widthProps.minValue ?? this.robot.spotWidth ?? widthProps.minValue ?? 0;
-
-        const heightValid = this.robot.spotHeight !== undefined
-          && this.robot.spotHeight >= (heightProps.minValue ?? 0)
-          && this.robot.spotHeight <= (heightProps.maxValue ?? Number.MAX_SAFE_INTEGER)
-          ? this.robot.spotHeight
-          : heightProps.minValue ?? this.robot.spotHeight ?? heightProps.minValue ?? 0;
-
-        this.spotWidthCharacteristic.updateValue(widthValid);
-        this.spotHeightCharacteristic.updateValue(heightValid);
-      }
-    } else {
-      const isCleaningBoundary = !!this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id;
-      const boundaryValue = this.cleanService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
-      if ((boundaryValue ?? false) !== isCleaningBoundary) {
-        this.cleanService.updateCharacteristic(this.platform.Characteristic.On, isCleaningBoundary);
-      } else if (this.pendingBoundaryState !== null) {
-        this.pendingBoundaryState = null;
+    if (this.goToDockService) {
+      const dockValue = this.goToDockService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+      if (dockValue === true && !!this.robot.dockHasBeenSeen) {
+        this.goToDockService.updateCharacteristic(this.platform.Characteristic.On, false);
       }
     }
+
+    if (this.scheduleService) {
+      const scheduleValue = this.scheduleService.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+      const scheduleEnabled = !!this.robot.isScheduleEnabled;
+      if ((scheduleValue ?? false) !== scheduleEnabled) {
+        this.scheduleService.updateCharacteristic(
+          this.platform.Characteristic.On,
+          scheduleEnabled,
+        );
+      }
+    }
+
+    const isDocked = !!this.robot.isDocked;
+    this.dockStateService?.updateCharacteristic(
+      this.platform.Characteristic.OccupancyDetected,
+      isDocked ? 1 : 0,
+    );
+
+    this.ecoService?.updateCharacteristic(this.platform.Characteristic.On, !!this.robot.eco);
+    this.noGoLinesService?.updateCharacteristic(this.platform.Characteristic.On, !!this.robot.noGoLines);
+    this.extraCareService?.updateCharacteristic(
+      this.platform.Characteristic.On,
+      this.robot.navigationMode === 2,
+    );
+
+    const repeatValue = this.robot.spotRepeat ?? false;
+    this.spotRepeatCharacteristic?.updateValue(repeatValue);
+
+    if (this.spotPlusFeatures && this.spotWidthCharacteristic && this.spotHeightCharacteristic) {
+      const widthProps = this.spotWidthCharacteristic.props;
+      const heightProps = this.spotHeightCharacteristic.props;
+
+      const widthValid = this.robot.spotWidth !== undefined
+        && this.robot.spotWidth >= (widthProps.minValue ?? 0)
+        && this.robot.spotWidth <= (widthProps.maxValue ?? Number.MAX_SAFE_INTEGER)
+        ? this.robot.spotWidth
+        : widthProps.minValue ?? this.robot.spotWidth ?? widthProps.minValue ?? 0;
+
+      const heightValid = this.robot.spotHeight !== undefined
+        && this.robot.spotHeight >= (heightProps.minValue ?? 0)
+        && this.robot.spotHeight <= (heightProps.maxValue ?? Number.MAX_SAFE_INTEGER)
+        ? this.robot.spotHeight
+        : heightProps.minValue ?? this.robot.spotHeight ?? heightProps.minValue ?? 0;
+
+      this.spotWidthCharacteristic.updateValue(widthValid);
+      this.spotHeightCharacteristic.updateValue(heightValid);
+    }
+
+    this.boundaryServices.forEach((service, boundaryId) => {
+      const isCleaningBoundary = !!this.robot.canPause && this.robot.cleaningBoundaryId === boundaryId;
+      const boundaryValue = service.getCharacteristic(this.platform.Characteristic.On).value as boolean | undefined;
+      if ((boundaryValue ?? false) !== isCleaningBoundary) {
+        service.updateCharacteristic(this.platform.Characteristic.On, isCleaningBoundary);
+      } else {
+        const pendingState = this.pendingBoundaryStates.get(boundaryId);
+        if (pendingState !== null && pendingState !== undefined) {
+          this.pendingBoundaryStates.set(boundaryId, null);
+        }
+      }
+    });
 
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.robot.charge ?? 0);
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.ChargingState, !!this.robot.isCharging);
 
-    if (this.nextRoom != null && this.robot.isDocked && this.boundary) {
-      void this.clean().then(() => {
+    if (this.nextRoom != null && this.robot.isDocked) {
+      const boundaryId = this.nextRoom;
+      if (!this.boundaryLabels.has(boundaryId)) {
         this.nextRoom = null;
-        debug('## Starting cleaning of next room');
+        return;
+      }
+      void this.clean({ boundaryId }).then(() => {
+        this.nextRoom = null;
+        const boundaryName = this.boundaryLabels.get(boundaryId) ?? boundaryId;
+        debug(`${this.name}: ## Starting cleaning of next room (${boundaryName})`);
       }).catch(() => {
         this.nextRoom = null;
       });
@@ -383,33 +380,60 @@ export class KoboldVacuumAccessory {
     );
   }
 
-  private resolveName(): string {
-    if (!this.boundary) {
-      return this.robot.name;
+  private boundaryServiceName(boundaryName: string): string {
+    const splitName = boundaryName.split(' ');
+    if (splitName.length >= 2 && /[']s$/g.test(splitName[splitName.length - 2])) {
+      return `${this.dict.clean} ${boundaryName}`;
     }
-
-    if (this.platform.boundaryNames.includes(this.boundary.name)) {
-      const lastChar = this.boundary.name.slice(-1);
-      if (!Number.isNaN(Number(lastChar))) {
-        this.boundary.name = `${this.boundary.name.slice(0, -1)}${Number(lastChar) + 1}`;
-      } else {
-        this.boundary.name = `${this.boundary.name} 2`;
-      }
-    }
-    this.platform.boundaryNames.push(this.boundary.name);
-    return `${this.robot.name} - ${this.boundary.name}`;
+    return `${this.dict['clean the']} ${boundaryName}`;
   }
 
-  private boundaryServiceName(): string {
-    if (!this.boundary) {
-      return `${this.name} ${this.dict.clean}`;
+  private ensureUniqueBoundaryName(name: string, usedNames: Set<string>): string {
+    let candidate = name;
+    let counter = 2;
+    while (usedNames.has(candidate)) {
+      candidate = `${name} ${counter}`;
+      counter += 1;
     }
+    usedNames.add(candidate);
+    return candidate;
+  }
 
-    const splitName = this.boundary.name.split(' ');
-    if (splitName.length >= 2 && /[']s$/g.test(splitName[splitName.length - 2])) {
-      return `${this.dict.clean} ${this.boundary.name}`;
-    }
-    return `${this.dict['clean the']} ${this.boundary.name}`;
+  private setupBoundaryServices(): void {
+    const maps = (Array.isArray(this.robot.maps) ? this.robot.maps : []) as Array<{ boundaries?: KoboldBoundary[] }>;
+    const usedNames = new Set<string>();
+
+    maps.forEach(map => {
+      if (!Array.isArray(map.boundaries)) {
+        return;
+      }
+
+      map.boundaries.forEach(boundary => {
+        if (boundary.type !== 'polygon') {
+          return;
+        }
+
+        if (this.boundaryServices.has(boundary.id)) {
+          return;
+        }
+
+        const displayName = this.ensureUniqueBoundaryName(boundary.name, usedNames);
+        this.boundaryLabels.set(boundary.id, displayName);
+
+        const serviceName = this.boundaryServiceName(displayName);
+        const service = this.createService(
+          this.platform.Service.Switch,
+          serviceName,
+          `cleanBoundary:${boundary.id}`,
+        );
+        service.getCharacteristic(this.platform.Characteristic.On)
+          .onSet(value => this.setClean(value, boundary.id))
+          .onGet(() => this.getClean(boundary.id));
+
+        this.boundaryServices.set(boundary.id, service);
+        this.pendingBoundaryStates.set(boundary.id, null);
+      });
+    });
   }
 
   private createService(
@@ -447,49 +471,51 @@ export class KoboldVacuumAccessory {
     return value === true || value === 1;
   }
 
-  private async getClean(): Promise<CharacteristicValue> {
-    if (this.boundary && this.pendingBoundaryState !== null) {
-      return this.pendingBoundaryState;
+  private async getClean(boundaryId?: string): Promise<CharacteristicValue> {
+    if (boundaryId) {
+      const pending = this.pendingBoundaryStates.get(boundaryId);
+      if (pending !== null && pending !== undefined) {
+        return pending;
+      }
     }
 
     await this.platform.updateRobot(this.robot._serial);
-    const cleaning = this.boundary
-      ? !!this.robot.canPause && this.robot.cleaningBoundaryId === this.boundary.id
+    const cleaning = boundaryId
+      ? !!this.robot.canPause && this.robot.cleaningBoundaryId === boundaryId
       : !!this.robot.canPause;
-    debug(`${this.name}: Cleaning is ${cleaning ? 'ON'.brightGreen : 'OFF'.red}`);
+    debug(`${this.name}: Cleaning ${boundaryId ?? 'house'} is ${cleaning ? 'ON'.brightGreen : 'OFF'.red}`);
     return cleaning;
   }
 
-  private async setClean(value: CharacteristicValue): Promise<void> {
+  private async setClean(value: CharacteristicValue, boundaryId?: string): Promise<void> {
     const on = this.asBool(value);
-    debug(
-      `${this.name}: ${on ? 'Enabled '.brightGreen : 'Disabled'.red} Clean ${this.boundary ? JSON.stringify(this.boundary) : ''}`,
-    );
+    const boundaryName = boundaryId ? this.boundaryLabels.get(boundaryId) ?? boundaryId : 'home';
+    debug(`${this.name}: ${on ? 'Enabled '.brightGreen : 'Disabled'.red} Clean ${boundaryName}`);
 
-    if (this.boundary) {
-      this.pendingBoundaryState = on;
+    if (boundaryId) {
+      this.pendingBoundaryStates.set(boundaryId, on);
     }
 
     await this.platform.updateRobot(this.robot._serial);
 
     if (on) {
-      if (!this.boundary || this.robot.cleaningBoundaryId === this.boundary.id) {
+      if (!boundaryId || this.robot.cleaningBoundaryId === boundaryId) {
         if (this.robot.canResume) {
           debug(`${this.name}: ## Resume cleaning`);
           await this.runCommand(cb => this.robot.resumeCleaning(cb));
         } else if (this.robot.canStart) {
           debug(`${this.name}: ## Start cleaning`);
-          await this.clean();
+          await this.clean({ boundaryId });
         } else {
           debug(`${this.name}: Cannot start, maybe already cleaning (expected)`);
         }
       } else if (this.robot.canPause || this.robot.canResume) {
         debug(`${this.name}: ## Returning to dock to start cleaning of new room`);
         await this.goToDockSequence();
-        this.nextRoom = this.boundary.id;
+        this.nextRoom = boundaryId;
       } else {
         debug(`${this.name}: ## Start cleaning of new room`);
-        await this.clean();
+        await this.clean({ boundaryId });
       }
     } else if (this.robot.canPause) {
       debug(`${this.name}: ## Pause cleaning`);
@@ -499,33 +525,35 @@ export class KoboldVacuumAccessory {
     }
 
     await this.platform.updateRobot(this.robot._serial);
-    if (this.boundary) {
-      this.pendingBoundaryState = null;
+    if (boundaryId) {
+      this.pendingBoundaryStates.set(boundaryId, null);
     }
   }
 
-  private async clean(spot?: SpotSettings): Promise<void> {
+  private async clean(options?: { spot?: SpotSettings; boundaryId?: string }): Promise<void> {
     if (this.refreshSetting === 'auto') {
       setTimeout(() => {
         this.platform.updateRobotTimer(this.robot._serial);
       }, 60 * 1000);
     }
 
+    const boundaryId = options?.boundaryId ?? null;
+    const spot = options?.spot;
     const eco = !!this.robot.eco;
     const extraCare = this.robot.navigationMode === 2;
     const noGoLines = !!this.robot.noGoLines;
-    const room = this.boundary ? this.boundary.name : '';
+    const room = boundaryId ? this.boundaryLabels.get(boundaryId) ?? '' : '';
 
     const roomLabel = room !== '' ? `${room} ` : '';
     const detailText = `eco: ${eco}, extraCare: ${extraCare}, nogoLines: ${noGoLines}, spot: ${JSON.stringify(spot)}`;
     debug(`${this.name}: ## Start cleaning (${roomLabel}${detailText})`);
 
-    if (!this.boundary && !spot) {
+    if (!boundaryId && !spot) {
       await this.runCommand((cb) => this.robot.startCleaning(eco, extraCare ? 2 : 1, noGoLines, cb), (error, result) => {
         this.platform.log.error(`Cannot start cleaning. ${error}: ${JSON.stringify(result)}`);
       });
-    } else if (room !== '') {
-      await this.runCommand((cb) => this.robot.startCleaningBoundary(eco, extraCare, this.boundary!.id, cb), (error, result) => {
+    } else if (boundaryId) {
+      await this.runCommand((cb) => this.robot.startCleaningBoundary(eco, extraCare, boundaryId, cb), (error, result) => {
         this.platform.log.error(`Cannot start room cleaning. ${error}: ${JSON.stringify(result)}`);
       });
     } else if (spot) {
@@ -661,7 +689,7 @@ export class KoboldVacuumAccessory {
         debug(`${this.name}: ## Resume (spot) cleaning`);
         await this.runCommand(cb => this.robot.resumeCleaning(cb));
       } else if (this.robot.canStart) {
-        await this.clean(spot);
+        await this.clean({ spot });
       } else {
         debug(`${this.name}: Cannot start spot cleaning, maybe already cleaning`);
       }
