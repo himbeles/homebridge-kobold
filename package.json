@@ -2,7 +2,7 @@
   "name": "homebridge-kobold",
   "displayName": "Homebridge Kobold Plugin",
   "type": "module",  
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A Vorwerk Kobold vacuum robot plugin for homebridge.",
   "author": "Luis R.",
   "license": "MIT",
