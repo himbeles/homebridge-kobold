@@ -5,11 +5,13 @@
     "strictValidation": false,
     "schema": {
       "type": "object",
+      "required": [
+        "token"
+      ],
       "properties": {
         "token": {
             "title": "token",
             "type": "string",
-            "required": true,
             "description": "Your Kobold Token (https://git.io/J3g1b)"
         },
         "language": {
@@ -35,8 +37,7 @@
                 "fr"
               ]
             }
-          ],
-          "required": true
+          ]
         }
       }
     }
