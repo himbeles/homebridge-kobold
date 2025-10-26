@@ -6,9 +6,14 @@
     "schema": {
       "type": "object",
       "required": [
-        "token"
+        "name", "token"
       ],
       "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string",
+          "default": "Kobold Vacuum Platform"
+        },
         "token": {
             "title": "token",
             "type": "string",
