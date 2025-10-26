@@ -147,135 +147,135 @@ export class KoboldVacuumAccessory {
     }
 
     
-      const exposeDock = !this.platform.isServiceHidden('dock');
-      this.goToDockService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.goToDock}`,
-        'goToDock',
-        exposeDock,
+    const exposeDock = !this.platform.isServiceHidden('dock');
+    this.goToDockService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.goToDock}`,
+      'goToDock',
+      exposeDock,
+    );
+    if (exposeDock && this.goToDockService) {
+      this.goToDockService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setGoToDock.bind(this))
+        .onGet(this.getGoToDock.bind(this));
+    }
+
+    const exposeDockState = !this.platform.isServiceHidden('dockstate');
+    this.dockStateService = this.createService(
+      this.platform.Service.OccupancySensor,
+      `${this.name} ${this.dict.dockState}`,
+      'dockState',
+      exposeDockState,
+    );
+    if (exposeDockState && this.dockStateService) {
+      this.dockStateService.getCharacteristic(this.platform.Characteristic.OccupancyDetected)
+        .onGet(this.getDock.bind(this));
+    }
+
+    const exposeEco = !this.platform.isServiceHidden('eco');
+    this.ecoService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.eco}`,
+      'eco',
+      exposeEco,
+    );
+    if (exposeEco && this.ecoService) {
+      this.ecoService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setEco.bind(this))
+        .onGet(this.getEco.bind(this));
+    }
+
+    const exposeNoGo = !this.platform.isServiceHidden('nogolines');
+    this.noGoLinesService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.noGoLines}`,
+      'noGoLines',
+      exposeNoGo,
+    );
+    if (exposeNoGo && this.noGoLinesService) {
+      this.noGoLinesService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setNoGoLines.bind(this))
+        .onGet(this.getNoGoLines.bind(this));
+    }
+
+    const exposeExtraCare = !this.platform.isServiceHidden('extracare');
+    this.extraCareService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.extraCare}`,
+      'extraCare',
+      exposeExtraCare,
+    );
+    if (exposeExtraCare && this.extraCareService) {
+      this.extraCareService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setExtraCare.bind(this))
+        .onGet(this.getExtraCare.bind(this));
+    }
+
+    const exposeSchedule = !this.platform.isServiceHidden('schedule');
+    this.scheduleService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.schedule}`,
+      'schedule',
+      exposeSchedule,
+    );
+    if (exposeSchedule && this.scheduleService) {
+      this.scheduleService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setSchedule.bind(this))
+        .onGet(this.getSchedule.bind(this));
+    }
+
+    const exposeFind = !this.platform.isServiceHidden('find');
+    this.findMeService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.findMe}`,
+      'findMe',
+      exposeFind,
+    );
+    if (exposeFind && this.findMeService) {
+      this.findMeService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setFindMe.bind(this))
+        .onGet(this.getFindMe.bind(this));
+    }
+
+    const exposeSpot = !this.platform.isServiceHidden('spot');
+    this.spotCleanService = this.createService(
+      this.platform.Service.Switch,
+      `${this.name} ${this.dict.cleanSpot}`,
+      'cleanSpot',
+      exposeSpot,
+    );
+
+    if (exposeSpot && this.spotCleanService) {
+      this.spotCleanService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setSpotClean.bind(this))
+        .onGet(this.getSpotClean.bind(this));
+
+      this.spotRepeatCharacteristic = this.getOrAddCharacteristic(
+        this.spotCleanService,
+        this.platform.spotCharacteristics.SpotRepeatCharacteristic,
       );
-      if (exposeDock && this.goToDockService) {
-        this.goToDockService.getCharacteristic(this.platform.Characteristic.On)
-          .onSet(this.setGoToDock.bind(this))
-          .onGet(this.getGoToDock.bind(this));
-      }
+      this.spotRepeatCharacteristic
+        ?.onSet(this.setSpotRepeat.bind(this))
+        .onGet(this.getSpotRepeat.bind(this));
 
-      const exposeDockState = !this.platform.isServiceHidden('dockstate');
-      this.dockStateService = this.createService(
-        this.platform.Service.OccupancySensor,
-        `${this.name} ${this.dict.dockState}`,
-        'dockState',
-        exposeDockState,
-      );
-      if (exposeDockState && this.dockStateService) {
-        this.dockStateService.getCharacteristic(this.platform.Characteristic.OccupancyDetected)
-          .onGet(this.getDock.bind(this));
-      }
-
-      const exposeEco = !this.platform.isServiceHidden('eco');
-      this.ecoService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.eco}`,
-        'eco',
-        exposeEco,
-      );
-      if (exposeEco && this.ecoService) {
-        this.ecoService.getCharacteristic(this.platform.Characteristic.On)
-          .onSet(this.setEco.bind(this))
-          .onGet(this.getEco.bind(this));
-      }
-
-      const exposeNoGo = !this.platform.isServiceHidden('nogolines');
-      this.noGoLinesService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.noGoLines}`,
-        'noGoLines',
-        exposeNoGo,
-      );
-      if (exposeNoGo && this.noGoLinesService) {
-        this.noGoLinesService.getCharacteristic(this.platform.Characteristic.On)
-          .onSet(this.setNoGoLines.bind(this))
-          .onGet(this.getNoGoLines.bind(this));
-      }
-
-      const exposeExtraCare = !this.platform.isServiceHidden('extracare');
-      this.extraCareService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.extraCare}`,
-        'extraCare',
-        exposeExtraCare,
-      );
-      if (exposeExtraCare && this.extraCareService) {
-        this.extraCareService.getCharacteristic(this.platform.Characteristic.On)
-          .onSet(this.setExtraCare.bind(this))
-          .onGet(this.getExtraCare.bind(this));
-      }
-
-      const exposeSchedule = !this.platform.isServiceHidden('schedule');
-      this.scheduleService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.schedule}`,
-        'schedule',
-        exposeSchedule,
-      );
-      if (exposeSchedule && this.scheduleService) {
-        this.scheduleService.getCharacteristic(this.platform.Characteristic.On)
-          .onSet(this.setSchedule.bind(this))
-          .onGet(this.getSchedule.bind(this));
-      }
-
-      const exposeFind = !this.platform.isServiceHidden('find');
-      this.findMeService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.findMe}`,
-        'findMe',
-        exposeFind,
-      );
-      if (exposeFind && this.findMeService) {
-        this.findMeService.getCharacteristic(this.platform.Characteristic.On)
-          .onSet(this.setFindMe.bind(this))
-          .onGet(this.getFindMe.bind(this));
-      }
-
-      const exposeSpot = !this.platform.isServiceHidden('spot');
-      this.spotCleanService = this.createService(
-        this.platform.Service.Switch,
-        `${this.name} ${this.dict.cleanSpot}`,
-        'cleanSpot',
-        exposeSpot,
-      );
-
-      if (exposeSpot && this.spotCleanService) {
-        this.spotCleanService.getCharacteristic(this.platform.Characteristic.On)
-          .onSet(this.setSpotClean.bind(this))
-          .onGet(this.getSpotClean.bind(this));
-
-        this.spotRepeatCharacteristic = this.getOrAddCharacteristic(
+      if (this.spotPlusFeatures) {
+        this.spotWidthCharacteristic = this.getOrAddCharacteristic(
           this.spotCleanService,
-          this.platform.spotCharacteristics.SpotRepeatCharacteristic,
+          this.platform.spotCharacteristics.SpotWidthCharacteristic,
         );
-        this.spotRepeatCharacteristic
-          ?.onSet(this.setSpotRepeat.bind(this))
-          .onGet(this.getSpotRepeat.bind(this));
+        this.spotHeightCharacteristic = this.getOrAddCharacteristic(
+          this.spotCleanService,
+          this.platform.spotCharacteristics.SpotHeightCharacteristic,
+        );
 
-        if (this.spotPlusFeatures) {
-          this.spotWidthCharacteristic = this.getOrAddCharacteristic(
-            this.spotCleanService,
-            this.platform.spotCharacteristics.SpotWidthCharacteristic,
-          );
-          this.spotHeightCharacteristic = this.getOrAddCharacteristic(
-            this.spotCleanService,
-            this.platform.spotCharacteristics.SpotHeightCharacteristic,
-          );
-
-          this.spotWidthCharacteristic
-            ?.onSet(this.setSpotWidth.bind(this))
-            .onGet(this.getSpotWidth.bind(this));
-          this.spotHeightCharacteristic
-            ?.onSet(this.setSpotHeight.bind(this))
-            .onGet(this.getSpotHeight.bind(this));
-        }
+        this.spotWidthCharacteristic
+          ?.onSet(this.setSpotWidth.bind(this))
+          .onGet(this.getSpotWidth.bind(this));
+        this.spotHeightCharacteristic
+          ?.onSet(this.setSpotHeight.bind(this))
+          .onGet(this.getSpotHeight.bind(this));
       }
+    }
 
     this.setupBoundaryServices();
   }
