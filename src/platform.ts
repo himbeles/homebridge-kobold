@@ -152,12 +152,15 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
         this.setupMainAccessory(robot);
         this.updateRobotTimer(robot.device._serial);
       });
+
+      // Only cleanup accessories if discovery was successful
+      this.cleanupAccessories();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log.error(`Failed to discover robots: ${message}`);
+      // Don't cleanup accessories if discovery failed - preserve existing accessories
+      // for when the robot comes back online
     }
-
-    this.cleanupAccessories();
   }
 
   private async loadRobots(): Promise<RobotRecord[]> {
