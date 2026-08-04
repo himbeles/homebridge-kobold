@@ -7,12 +7,38 @@ declare module 'node-kobold-control' {
 
   export interface KoboldMap {
     id: string;
+    name?: string;
     boundaries?: KoboldMapBoundary[];
   }
 
   export interface KoboldRobotState {
-    meta: Record<string, unknown>;
-    availableServices: Record<string, unknown>;
+    state?: number;
+    action?: number;
+    error?: string;
+    alert?: string;
+    meta?: Record<string, unknown>;
+    availableServices?: Record<string, unknown>;
+    cleaning?: {
+      category?: number;
+      mode?: number;
+      modifier?: number;
+      navigationMode?: number;
+      boundaryId?: string;
+    };
+    details?: {
+      isCharging?: boolean;
+      isDocked?: boolean;
+      isScheduleEnabled?: boolean;
+      dockHasBeenSeen?: boolean;
+      charge?: number;
+    };
+    availableCommands?: {
+      start?: boolean;
+      stop?: boolean;
+      pause?: boolean;
+      resume?: boolean;
+      goToBase?: boolean;
+    };
   }
 
   export interface KoboldRobot {

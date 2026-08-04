@@ -31,6 +31,12 @@ The interaction with the Server is handled by the underlying [node-kobold-contro
   - Model and firmware version
 - Automatic or periodic refresh of robot state
 - Multiple robots
+- Native Matter robotic vacuum accessory on Homebridge 2
+  - Run and clean modes
+  - Pause, resume, and return to dock
+  - Operational, charging, and battery state
+  - Room selection through Matter Service Areas
+  - Identify/play-sound support
 
 - German, English or French Language Setting
 
@@ -102,6 +108,35 @@ From the output, you want to copy the `id_token` value.
 
 The `language` can be `de` for German, `en` for English, or `fr` for French.
 
+## Matter migration
+
+Matter support follows Homebridge's [robotic-vacuum Matter API](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-12-Robotic). It requires Homebridge 2, Node.js 22 or 24, and Matter enabled for the main bridge or this plugin's child bridge. A child bridge is recommended while testing because it isolates the Matter server and pairing data.
+
+Set `exposureMode` to choose which accessory implementation is published:
+
+- `homekit` (default): Keep the existing HomeKit switches and sensors.
+- `both`: Publish HomeKit and Matter accessories together while testing the migration.
+- `matter`: Publish only the native Matter robotic vacuum. If Matter is not enabled, the plugin logs a warning and falls back to HomeKit so the robot remains available.
+
+Example migration configuration:
+
+```json
+"platforms": [
+  {
+    "platform": "KoboldVacuumRobot",
+    "token": "YourToken",
+    "exposureMode": "both",
+    "refresh": "auto"
+  }
+]
+```
+
+Restart Homebridge after enabling Matter. Each Kobold robotic vacuum receives its own Matter pairing QR code. Pair and validate the Matter accessory before changing `exposureMode` from `both` to `matter`. Homebridge Matter is not CSA-certified, so controllers may show an uncertified-accessory warning; pairing also requires Homebridge and the controller to share a network with working mDNS and IPv6.
+
+The Matter accessory exposes normal and eco vacuum modes, start/pause/resume, return to dock, battery and charging state, Identify, and polygon map boundaries as selectable rooms. Schedule control, NoGo-line selection, Extra Care, and configurable spot-cleaning dimensions do not have faithful standard Matter RVC controls; they remain available only through the legacy HomeKit accessory when using `homekit` or `both`.
+
+Using `both` can show duplicate robot controls when the HomeKit and Matter bridges are paired to the same Apple Home. It is intended as a temporary migration mode.
+
 ### Advanced
 
 Below are explanations for advanced parameters to adjust the plugin to your needs. All parameters are *optional*.
@@ -113,7 +148,7 @@ Timer for periodic refresh of robot state. The default is `auto`. The options ar
 `0` Disables background updates completely.
 
 **hidden**  
-List of plugin features that you don't want to use in homekit (e.g. `dock`, `dockstate`, `eco`, `nogolines`, `extracare`, `schedule`, `find`, `spot`).
+List of plugin features that you don't want to use in HomeKit (e.g. `dock`, `dockstate`, `eco`, `nogolines`, `extracare`, `schedule`, `find`, `spot`). This setting does not remove Matter clusters.
 
 ```json
 "platforms": [

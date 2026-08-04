@@ -1,3 +1,12 @@
+## Unreleased
+
+* Added a native Matter robotic-vacuum accessory for Homebridge 2
+* Added HomeKit, Matter, and dual-exposure migration modes
+* Added Matter run/clean modes, operational state, battery state, and Service Area room selection
+* Added stable Matter accessory, map, and area identities plus automated Matter state tests
+* Replaced direct `hap-nodejs` type/runtime imports with the Homebridge API for Homebridge 2 compatibility
+* Restricted npm package contents to release artifacts so local test configuration is not published
+
 ## 0.1.0
 
 * Added start and pause cleaning
@@ -132,4 +141,4 @@
 * Add French plugin language (for example, this gives you a "Aspirer la cuisine" Siri command for a zone called "La cuisine")
 
 ## 0.8.4
-* Link to token getter tool in homebridge UI 
+* Link to token getter tool in homebridge UI

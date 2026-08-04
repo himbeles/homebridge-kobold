@@ -1,6 +1,4 @@
-import type { API } from 'homebridge';
-import { Perms } from 'hap-nodejs';
-import type { Characteristic as HapCharacteristic, WithUUID } from 'hap-nodejs';
+import type { API, Characteristic as HapCharacteristic, WithUUID } from 'homebridge';
 
 export const CustomUUID = {
   SpotCleanWidth: 'A7889A9A-2F27-4293-BEF8-3FE805B36F4E',
@@ -27,7 +25,7 @@ export const buildSpotCharacteristics = (api: API): SpotCharacteristicConstructo
         maxValue: 400,
         minValue: 100,
         minStep: 50,
-        perms: [Perms.PAIRED_READ, Perms.PAIRED_WRITE],
+        perms: [api.hap.Perms.PAIRED_READ, api.hap.Perms.PAIRED_WRITE],
       });
       this.value = this.getDefaultValue();
     }
@@ -43,7 +41,7 @@ export const buildSpotCharacteristics = (api: API): SpotCharacteristicConstructo
         maxValue: 400,
         minValue: 100,
         minStep: 50,
-        perms: [Perms.PAIRED_READ, Perms.PAIRED_WRITE],
+        perms: [api.hap.Perms.PAIRED_READ, api.hap.Perms.PAIRED_WRITE],
       });
       this.value = this.getDefaultValue();
     }
@@ -55,7 +53,7 @@ export const buildSpotCharacteristics = (api: API): SpotCharacteristicConstructo
     constructor() {
       super('Spot 2x', SpotRepeatCharacteristicClass.UUID, {
         format: api.hap.Formats.BOOL,
-        perms: [Perms.PAIRED_READ, Perms.PAIRED_WRITE],
+        perms: [api.hap.Perms.PAIRED_READ, api.hap.Perms.PAIRED_WRITE],
       });
       this.value = this.getDefaultValue();
     }

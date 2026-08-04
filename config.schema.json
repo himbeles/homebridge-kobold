@@ -43,6 +43,42 @@
               ]
             }
           ]
+        },
+        "exposureMode": {
+          "title": "Accessory Exposure",
+          "type": "string",
+          "default": "homekit",
+          "description": "Matter requires Homebridge 2 and Matter enabled on this bridge. Use Both while migrating, then Matter after pairing succeeds.",
+          "oneOf": [
+            {
+              "title": "HomeKit (legacy)",
+              "enum": ["homekit"]
+            },
+            {
+              "title": "Matter",
+              "enum": ["matter"]
+            },
+            {
+              "title": "Both (migration/testing)",
+              "enum": ["both"]
+            }
+          ]
+        },
+        "refresh": {
+          "title": "Refresh Interval",
+          "description": "Use auto, 0 to disable, or a number of seconds (minimum 60). Matter auto mode polls every 60 seconds while active and 120 seconds while idle.",
+          "type": ["string", "number"],
+          "default": "auto"
+        },
+        "hidden": {
+          "title": "Hidden HomeKit Services",
+          "description": "Only applies to legacy HomeKit services.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["dock", "dockstate", "eco", "nogolines", "extracare", "schedule", "find", "spot"]
+          }
         }
       }
     }
