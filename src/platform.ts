@@ -206,14 +206,11 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
       }
 
       if (this.exposeMatter) {
-        const activeMatterAccessories = this.robots
-          .map(robot => robot.matterAccessory?.accessory)
-          .filter((accessory): accessory is NonNullable<typeof accessory> => accessory !== undefined)
-          .map(accessory => accessory as MatterAccessory);
-        if (activeMatterAccessories.length > 0) {
-          await this.api.matter!.updatePlatformAccessories(activeMatterAccessories);
-          await Promise.all(this.robots.map(robot => robot.matterAccessory?.syncState()));
-        }
+        // RVC accessories are published as external Matter servers. Homebridge
+        // currently replaces its registered internal accessory (including the
+        // live endpoint) when updatePlatformAccessories() is called for a cached
+        // external accessory. Send state updates directly instead.
+        await Promise.all(this.robots.map(robot => robot.matterAccessory?.syncState()));
       }
 
       this.robots.forEach(robot => this.updateRobotTimer(robot.device._serial));

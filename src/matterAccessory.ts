@@ -426,7 +426,9 @@ export class KoboldMatterVacuumAccessory {
     this.currentAreaId = null;
     this.completedAreaIds.clear();
     this.skippedAreaIds.clear();
-    await this.platform.api.matter!.updatePlatformAccessories([this.accessory]);
+    // The registered Matter accessory holds this same context object. Avoid
+    // updatePlatformAccessories() here because Homebridge currently drops the
+    // live endpoint when updating a cached external RVC accessory.
   }
 
   private async skipArea(request: MatterRequests.SkipArea): Promise<void> {

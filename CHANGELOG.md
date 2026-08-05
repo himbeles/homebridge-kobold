@@ -8,6 +8,7 @@
 * Restricted npm package contents to release artifacts so local test configuration is not published
 * Aligned the watch environment with the Homebridge plugin template and global Homebridge/Config UI runtime
 * Standardized development, publishing, and package compatibility on Node.js 24
+* Avoided cached external Matter accessories losing their runtime endpoint after restart
 
 ## 0.1.0
 

@@ -120,14 +120,14 @@ describe('Kobold Matter accessory', () => {
     expect(harness.startBoundary).not.toHaveBeenCalled();
   });
 
-  it('persists selected areas and queues multiple Kobold boundary cleans', async () => {
+  it('keeps selected areas without replacing the external Matter endpoint', async () => {
     const harness = createHarness();
     const areas = harness.handler.accessory.clusters?.serviceArea?.supportedAreas ?? [];
     const selected = areas.map(area => area.areaId);
 
     await harness.handler.accessory.handlers?.serviceArea?.selectAreas?.({ newAreas: selected });
     expect(harness.handler.accessory.context.selectedAreaIds).toEqual(selected);
-    expect(harness.updatePlatformAccessories).toHaveBeenCalledOnce();
+    expect(harness.updatePlatformAccessories).not.toHaveBeenCalled();
 
     await harness.handler.accessory.handlers?.rvcRunMode?.changeToMode?.({ newMode: MatterRunMode.Cleaning });
     expect(harness.startBoundary).toHaveBeenCalledTimes(1);
