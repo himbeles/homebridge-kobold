@@ -73,3 +73,6 @@ testem.log
 .DS_Store
 Thumbs.db
 package-lock.json
+
+# Local Homebridge development state (may contain credentials)
+/test/
