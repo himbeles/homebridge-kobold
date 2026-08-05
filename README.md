@@ -52,6 +52,36 @@ The interaction with the Server is handled by the underlying [node-kobold-contro
 2. Install this plugin using: `npm install -g homebridge-kobold`
 3. Update your configuration file. See the sample below.
 
+## Development
+
+The development workflow follows the [Homebridge plugin template](https://github.com/homebridge/homebridge-plugin-template). It uses the globally installed Homebridge and Config UI at runtime while keeping Homebridge as a local development dependency for TypeScript API definitions.
+
+Install or update the global tools, then install this repository's dependencies:
+
+```bash
+npm install -g homebridge@latest homebridge-config-ui-x@latest
+npm install
+```
+
+Create a private local Homebridge configuration before the first run:
+
+```bash
+mkdir -p test/hbConfig
+cp config.dev.example.json test/hbConfig/config.json
+```
+
+Replace `YOUR_KOBOLD_TOKEN` in `test/hbConfig/config.json`. The entire `test` directory is ignored because Homebridge writes credentials and pairing state there; never commit it.
+
+Start the watch environment:
+
+```bash
+npm run watch
+```
+
+This builds the plugin, links it into the active global Node.js installation, watches `src` for TypeScript changes, and restarts the isolated Homebridge test server after each build. Its configuration and state live under `test/hbConfig`, and the local web interface is available at [http://localhost:8581](http://localhost:8581).
+
+Stop any other Homebridge development instance first if it uses the same ports. Press `Ctrl+C` to stop the watcher and its Homebridge/UI child processes.
+
 ## Configuration
 
 Add the following information to your config file. Adapt the value for `token`.

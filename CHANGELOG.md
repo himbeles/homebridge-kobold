@@ -6,6 +6,7 @@
 * Added stable Matter accessory, map, and area identities plus automated Matter state tests
 * Replaced direct `hap-nodejs` type/runtime imports with the Homebridge API for Homebridge 2 compatibility
 * Restricted npm package contents to release artifacts so local test configuration is not published
+* Aligned the watch environment with the Homebridge plugin template and global Homebridge/Config UI runtime
 
 ## 0.1.0
 
