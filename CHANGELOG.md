@@ -1,7 +1,9 @@
 ## Unreleased
 
+## 2.0.0-beta.0 (2026-08-05)
+
 * Added a native Matter robotic-vacuum accessory for Homebridge 2
-* Added HomeKit, Matter, and dual-exposure migration modes
+* Added HomeKit, Matter, and dual-exposure modes
 * Added Matter run/clean modes, operational state, battery state, and Service Area room selection
 * Added stable Matter accessory, map, and area identities plus automated Matter state tests
 * Replaced direct `hap-nodejs` type/runtime imports with the Homebridge API for Homebridge 2 compatibility
