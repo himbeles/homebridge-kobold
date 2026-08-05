@@ -34,7 +34,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
+    "node": "^24.0.0",
     "homebridge": "^1.8.0 || ^2.0.0"
   },
   "scripts": {
@@ -47,7 +47,6 @@
   "dependencies": {
     "colors": "^1.4.0",
     "debug": "^4.4.3",
-    "homebridge-lib": "^7.1.8",
     "node-kobold-control": ">=0.6.0",
     "uuid": "^13.0.0"
   },

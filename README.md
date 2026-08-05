@@ -56,12 +56,16 @@ The interaction with the Server is handled by the underlying [node-kobold-contro
 
 The development workflow follows the [Homebridge plugin template](https://github.com/homebridge/homebridge-plugin-template). It uses the globally installed Homebridge and Config UI at runtime while keeping Homebridge as a local development dependency for TypeScript API definitions.
 
-Install or update the global tools, then install this repository's dependencies:
+Install and activate Node.js 24 with nvm, then install or update the global tools and this repository's dependencies:
 
 ```bash
+nvm install 24
+nvm use
 npm install -g homebridge@latest homebridge-config-ui-x@latest
-npm install
+npm ci
 ```
+
+The plugin and its development workflow support Node.js 24 only. The repository's `.nvmrc` makes `nvm use` select the correct runtime.
 
 Create a private local Homebridge configuration before the first run:
 
