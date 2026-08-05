@@ -1,9 +1,11 @@
 import type {
+  ClusterStateMap,
   MatterAccessory,
   MatterRequests,
   ServiceAreaState,
 } from 'homebridge';
 import type { KoboldMap, KoboldRobot } from 'node-kobold-control';
+import { isDeepStrictEqual } from 'node:util';
 
 import Debug from 'debug';
 
@@ -19,6 +21,7 @@ import {
 import type { KoboldHomebridgePlatform, RobotRecord } from './platform.js';
 
 const debug = Debug('homebridge-kobold:matter');
+const COMMAND_TIMEOUT_MS = 30_000;
 
 export function matterUuidSeed(serial: string): string {
   return `homebridge-kobold:matter:${serial}`;
@@ -289,7 +292,7 @@ export class KoboldMatterVacuumAccessory {
     return {
       identify: {
         identify: async () => {
-          await this.runCommand(callback => this.robot.findMe(callback));
+          await this.runCommand('identify', callback => this.robot.findMe(callback));
         },
       },
       rvcRunMode: {
@@ -311,11 +314,11 @@ export class KoboldMatterVacuumAccessory {
   }
 
   private async changeRunMode(request: MatterRequests.ChangeToMode): Promise<void> {
-    await this.platform.updateRobot(this.robot._serial, true);
+    await this.refreshBeforeCommand('change run mode');
 
     if (request.newMode === MatterRunMode.Cleaning) {
       if (this.robot.canResume) {
-        await this.runCommand(callback => this.robot.resumeCleaning(callback));
+        await this.runCommand('resume cleaning', callback => this.robot.resumeCleaning(callback));
       } else if (this.robot.canStart) {
         await this.startSelectedCleaning();
       } else if (!this.robot.canPause) {
@@ -323,12 +326,18 @@ export class KoboldMatterVacuumAccessory {
       }
 
       await this.updateOperationalState(MatterOperationalState.Running);
+      this.rememberState(this.platform.api.matter!.clusterNames.RvcRunMode, {
+        currentMode: MatterRunMode.Cleaning,
+      });
       this.platform.scheduleActiveRefresh(this.robot._serial);
       return;
     }
 
     if (request.newMode === MatterRunMode.Idle) {
-      await this.goHome();
+      await this.goHome(false, true);
+      this.rememberState(this.platform.api.matter!.clusterNames.RvcRunMode, {
+        currentMode: MatterRunMode.Idle,
+      });
       return;
     }
 
@@ -341,36 +350,44 @@ export class KoboldMatterVacuumAccessory {
     }
     if (request.newMode === MatterCleanMode.Normal) {
       this.robot.eco = false;
+      this.rememberState(this.platform.api.matter!.clusterNames.RvcCleanMode, {
+        currentMode: MatterCleanMode.Normal,
+      });
       return;
     }
     if (request.newMode === MatterCleanMode.Eco) {
       this.robot.eco = true;
+      this.rememberState(this.platform.api.matter!.clusterNames.RvcCleanMode, {
+        currentMode: MatterCleanMode.Eco,
+      });
       return;
     }
     throw new Error(`Unsupported clean mode ${request.newMode}.`);
   }
 
   private async pause(): Promise<void> {
-    await this.platform.updateRobot(this.robot._serial, true);
+    await this.refreshBeforeCommand('pause');
     if (!this.robot.canPause) {
       throw new Error('The robot cannot be paused in its current state.');
     }
-    await this.runCommand(callback => this.robot.pauseCleaning(callback));
+    await this.runCommand('pause cleaning', callback => this.robot.pauseCleaning(callback));
     await this.updateOperationalState(MatterOperationalState.Paused);
   }
 
   private async resume(): Promise<void> {
-    await this.platform.updateRobot(this.robot._serial, true);
+    await this.refreshBeforeCommand('resume');
     if (!this.robot.canResume) {
       throw new Error('The robot cannot be resumed in its current state.');
     }
-    await this.runCommand(callback => this.robot.resumeCleaning(callback));
+    await this.runCommand('resume cleaning', callback => this.robot.resumeCleaning(callback));
     await this.updateOperationalState(MatterOperationalState.Running);
     this.platform.scheduleActiveRefresh(this.robot._serial);
   }
 
-  private async goHome(preserveAreaQueue = false): Promise<void> {
-    await this.platform.updateRobot(this.robot._serial, true);
+  private async goHome(preserveAreaQueue = false, stateAlreadyRefreshed = false): Promise<void> {
+    if (!stateAlreadyRefreshed) {
+      await this.refreshBeforeCommand('return to dock');
+    }
 
     if (this.robot.isDocked) {
       if (!preserveAreaQueue) {
@@ -384,12 +401,12 @@ export class KoboldMatterVacuumAccessory {
     }
 
     if (this.robot.canPause) {
-      await this.runCommand(callback => this.robot.pauseCleaning(callback));
+      await this.runCommand('pause before returning to dock', callback => this.robot.pauseCleaning(callback));
       await this.delay(1000);
     }
 
     if (this.robot.canGoToBase || this.robot.canPause) {
-      await this.runCommand(callback => this.robot.sendToBase(callback));
+      await this.runCommand('return to dock', callback => this.robot.sendToBase(callback));
       if (!preserveAreaQueue) {
         this.cancelAreaQueue();
       }
@@ -426,6 +443,9 @@ export class KoboldMatterVacuumAccessory {
     this.currentAreaId = null;
     this.completedAreaIds.clear();
     this.skippedAreaIds.clear();
+    this.rememberState(this.platform.api.matter!.clusterNames.ServiceArea, {
+      selectedAreas: this.accessory.context.selectedAreaIds,
+    });
     // The registered Matter accessory holds this same context object. Avoid
     // updatePlatformAccessories() here because Homebridge currently drops the
     // live endpoint when updating a cached external RVC accessory.
@@ -476,7 +496,7 @@ export class KoboldMatterVacuumAccessory {
     const eco = !!this.robot.eco;
     const extraCare = this.robot.navigationMode === 2;
     const noGoLines = !!this.robot.noGoLines;
-    await this.runCommand(callback => this.robot.startCleaning(
+    await this.runCommand('start whole-home cleaning', callback => this.robot.startCleaning(
       eco,
       extraCare ? 2 : 1,
       noGoLines,
@@ -501,21 +521,16 @@ export class KoboldMatterVacuumAccessory {
 
     this.currentAreaId = area.areaId;
     this.hasSeenCurrentAreaRunning = false;
-    await this.runCommand(callback => this.robot.startCleaningBoundary(
+    await this.runCommand(`start cleaning area ${area.name}`, callback => this.robot.startCleaningBoundary(
       !!this.robot.eco,
       this.robot.navigationMode === 2,
       boundaryId,
       callback,
     ));
     await this.updateOperationalState(MatterOperationalState.Running);
-    const matter = this.platform.api.matter;
-    if (matter) {
-      await matter.updateAccessoryState(
-        this.accessory.UUID,
-        matter.clusterNames.RvcRunMode,
-        { currentMode: MatterRunMode.Cleaning },
-      );
-    }
+    await this.updateChangedState(this.platform.api.matter!.clusterNames.RvcRunMode, {
+      currentMode: MatterRunMode.Cleaning,
+    });
     this.platform.scheduleActiveRefresh(this.robot._serial);
     await this.updateServiceAreaState();
   }
@@ -550,13 +565,11 @@ export class KoboldMatterVacuumAccessory {
     }
 
     const updates: Promise<void>[] = [
-      matter.updateAccessoryState(
-        this.accessory.UUID,
+      this.updateChangedState(
         matter.clusterNames.RvcCleanMode,
         { currentMode: state.cleanMode },
       ),
-      matter.updateAccessoryState(
-        this.accessory.UUID,
+      this.updateChangedState(
         matter.clusterNames.PowerSource,
         {
           batPercentRemaining: state.batteryPercentRemaining,
@@ -572,13 +585,11 @@ export class KoboldMatterVacuumAccessory {
     // by startNextArea() until the next refresh observes the new cleaning job.
     if (!startedNextArea) {
       updates.push(
-        matter.updateAccessoryState(
-          this.accessory.UUID,
+        this.updateChangedState(
           matter.clusterNames.RvcRunMode,
           { currentMode: state.runMode },
         ),
-        matter.updateAccessoryState(
-          this.accessory.UUID,
+        this.updateChangedState(
           matter.clusterNames.RvcOperationalState,
           {
             operationalState: state.operationalState,
@@ -596,8 +607,7 @@ export class KoboldMatterVacuumAccessory {
     if (!matter) {
       return;
     }
-    await matter.updateAccessoryState(
-      this.accessory.UUID,
+    await this.updateChangedState(
       matter.clusterNames.RvcOperationalState,
       { operationalState },
     );
@@ -608,8 +618,7 @@ export class KoboldMatterVacuumAccessory {
     if (!matter) {
       return;
     }
-    await matter.updateAccessoryState(
-      this.accessory.UUID,
+    await this.updateChangedState(
       matter.clusterNames.ServiceArea,
       {
         selectedAreas: this.accessory.context.selectedAreaIds,
@@ -619,17 +628,81 @@ export class KoboldMatterVacuumAccessory {
     );
   }
 
+  private async refreshBeforeCommand(action: string): Promise<void> {
+    const refreshed = await this.platform.updateRobot(this.robot._serial, true);
+    if (!refreshed) {
+      throw new Error(`Cannot ${action}: the latest robot state could not be retrieved.`);
+    }
+  }
+
+  private rememberState<K extends keyof ClusterStateMap>(
+    cluster: K,
+    attributes: Partial<ClusterStateMap[K]>,
+  ): void {
+    const clusters = this.accessory.clusters as Record<string, Record<string, unknown> | undefined>;
+    clusters[cluster] = {
+      ...(clusters[cluster] ?? {}),
+      ...attributes,
+    };
+  }
+
+  private async updateChangedState<K extends keyof ClusterStateMap>(
+    cluster: K,
+    attributes: Partial<ClusterStateMap[K]>,
+  ): Promise<void> {
+    const matter = this.platform.api.matter;
+    if (!matter) {
+      return;
+    }
+
+    const clusters = this.accessory.clusters as Record<string, Record<string, unknown> | undefined>;
+    const current = clusters[cluster] ?? {};
+    const changed = Object.fromEntries(
+      Object.entries(attributes)
+        .filter(([key, value]) => !isDeepStrictEqual(current[key], value)),
+    ) as Partial<ClusterStateMap[K]>;
+
+    if (Object.keys(changed).length === 0) {
+      return;
+    }
+
+    await matter.updateAccessoryState(this.accessory.UUID, cluster, changed);
+    this.rememberState(cluster, changed);
+  }
+
   private runCommand<T = unknown>(
+    action: string,
     command: (callback: (error?: unknown, result?: T) => void) => void,
   ): Promise<T | undefined> {
-    return new Promise((resolve, reject) => {
-      command((error?: unknown, result?: T) => {
+    this.platform.log.info(`${this.robot.name}: Matter command: ${action}`);
+
+    return new Promise<T | undefined>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`${action} timed out after ${COMMAND_TIMEOUT_MS / 1000} seconds.`));
+      }, COMMAND_TIMEOUT_MS);
+
+      const callback = (error?: unknown, result?: T) => {
+        clearTimeout(timeout);
         if (error) {
           reject(error instanceof Error ? error : new Error(String(error)));
         } else {
           resolve(result);
         }
-      });
+      };
+
+      try {
+        command(callback);
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    }).then(result => {
+      this.platform.log.info(`${this.robot.name}: Matter command completed: ${action}`);
+      return result;
+    }).catch(error => {
+      const message = error instanceof Error ? error.message : String(error);
+      this.platform.log.error(`${this.robot.name}: Matter command failed (${action}): ${message}`);
+      throw error;
     });
   }
 

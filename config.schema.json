@@ -1,7 +1,7 @@
 {
   "pluginAlias": "KoboldVacuumRobot",
   "pluginType": "platform",
-  "headerDisplay": "Configure how your Kobold robot is exposed. Matter requires Homebridge 2 and must be enabled on this bridge. When using a child bridge, enable Matter support for external accessories in its bridge settings. [Documentation](https://github.com/himbeles/homebridge-kobold#readme)",
+  "headerDisplay": "Homebridge bridge settings control whether Kobold accessories are exposed through HAP, Matter, or both. The plugin automatically adds Matter accessories when Matter external-accessory support is enabled for this bridge. [Documentation](https://github.com/himbeles/homebridge-kobold#readme)",
   "strictValidation": false,
   "schema": {
     "type": "object",
@@ -19,32 +19,6 @@
         "title": "Kobold Token",
         "type": "string",
         "description": "Your Kobold authentication token. See the documentation for token setup instructions."
-      },
-      "exposureMode": {
-        "title": "Accessory Exposure",
-        "type": "string",
-        "default": "both",
-        "description": "Choose which protocols publish each robot. Restart Homebridge after changing this setting.",
-        "oneOf": [
-          {
-            "title": "HomeKit + Matter (default)",
-            "enum": [
-              "both"
-            ]
-          },
-          {
-            "title": "HomeKit only",
-            "enum": [
-              "homekit"
-            ]
-          },
-          {
-            "title": "Matter only",
-            "enum": [
-              "matter"
-            ]
-          }
-        ]
       },
       "language": {
         "title": "HomeKit Language",
@@ -114,32 +88,21 @@
     },
     {
       "type": "fieldset",
-      "title": "Accessory Exposure",
-      "description": "Choose how each robot is published to smart-home controllers.",
+      "title": "Protocol Exposure",
+      "description": "Protocol exposure is configured in this bridge's Homebridge settings.",
       "items": [
-        "exposureMode",
         {
           "type": "help",
-          "helpvalue": "<p><strong>HomeKit + Matter:</strong> Publishes both versions. The HomeKit version appears in the Homebridge Accessories screen and retains HomeKit-only controls. The Matter version works with Matter controllers. Pairing both versions to the same home can create duplicate robot tiles.</p><p><strong>HomeKit only:</strong> Publishes the established HomeKit accessory with the widest feature coverage and Homebridge UI control, but no Matter accessory.</p><p><strong>Matter only:</strong> Publishes only the native Matter robotic vacuum. Matter accessories do not appear in the Homebridge Accessories screen and must be managed with Apple Home or another Matter controller. HomeKit-only controls such as schedules, No-Go lines, Extra Care, and spot dimensions are unavailable.</p><p>Matter requires Homebridge 2, Matter enabled on this bridge, and working mDNS and IPv6. Controllers may warn that the Homebridge Matter accessory is uncertified.</p>"
-        },
-        {
-          "type": "help",
-          "condition": {
-            "functionBody": "return model.exposureMode === 'both' || model.exposureMode === 'matter';"
-          },
-          "helpvalue": "<p><strong>Child bridge setup required:</strong> If this plugin runs as a child bridge, open its bridge settings and enable <strong>Matter → External Accessories</strong>. Matter accessories cannot be published until this Homebridge-level option is enabled.</p><p><strong>Find the Matter pairing code after restarting:</strong> open <strong>Plugins → Homebridge Kobold → ⋮ Actions → External Accessories</strong>. Select a robot to view its QR code, manual pairing code, and pairing status.</p>"
+          "helpvalue": "<p><strong>HAP only:</strong> leave Matter disabled for this bridge.</p><p><strong>HAP + Matter:</strong> leave HAP enabled and enable <strong>Matter → External Accessories</strong> in the bridge settings.</p><p><strong>Matter only:</strong> run Kobold on a dedicated child bridge, disable HAP there, and enable <strong>Matter → External Accessories</strong>. Per-plugin protocol selection is intentionally unavailable on a shared main bridge.</p><p>After restarting, find each Matter pairing code under <strong>Plugins → Homebridge Kobold → ⋮ Actions → External Accessories</strong>. Matter requires Homebridge 2 plus working mDNS and IPv6.</p>"
         }
       ]
     },
     {
       "type": "fieldset",
       "title": "HomeKit Exposure",
-      "description": "These options apply only when HomeKit exposure is enabled.",
+      "description": "These options apply to the HAP accessory when HAP is enabled for the bridge.",
       "expandable": true,
       "expanded": true,
-      "condition": {
-        "functionBody": "return model.exposureMode !== 'matter';"
-      },
       "items": [
         "language",
         "hidden"

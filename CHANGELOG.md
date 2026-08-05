@@ -1,15 +1,24 @@
 ## Unreleased
 
+## 2.0.0-beta.1 (2026-08-05)
+
 ### Changed
 
-* Added a conditional config UI notice that Matter external-accessory support must be enabled in the plugin's child bridge settings
+* Moved protocol exposure control exclusively to Homebridge bridge settings; the plugin now always provides its HAP accessory and automatically adds Matter when the bridge enables Matter external accessories
+* Declared both `supports-hap` and `supports-matter` package transports so Homebridge UI shows Matter support while retaining HAP-enabled child-bridge defaults
+* Added bridge-configuration guidance, including dedicated-child-bridge instructions for Matter-only use
+* Added change-only Matter state publishing for run mode, clean mode, operational state, battery, and Service Areas
+* Made robot refresh failures retain the last published state and abort Matter commands that cannot validate current robot capabilities
+
+### Fixed
+
+* Added error propagation, contextual logging, and a 30-second timeout to callback-based Matter robot commands
 
 ## 2.0.0-beta.0 (2026-08-05)
 
 ### Added
 
 * Native Matter robotic-vacuum support for Homebridge 2, including run and clean modes, start, pause, resume, return to dock, operational and battery state, Identify, and room selection through Matter Service Areas
-* `homekit`, `matter`, and `both` exposure modes, with HomeKit + Matter as the default and an automatic HomeKit fallback when Matter is unavailable
 * Config UI sections for exposure and HomeKit-specific settings, including protocol trade-offs and directions to the Matter pairing codes
 
 ### Changed

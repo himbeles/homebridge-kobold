@@ -8,6 +8,7 @@ import { MatterOperationalState, MatterRunMode } from '../src/matterState.js';
 import type { KoboldHomebridgePlatform, RobotRecord } from '../src/platform.js';
 
 function createHarness() {
+  const findMe = vi.fn((callback: (error?: unknown, result?: unknown) => void) => callback(undefined, 'ok'));
   const startBoundary = vi.fn((
     _eco: boolean,
     _extraCare: boolean,
@@ -50,11 +51,16 @@ function createHarness() {
     pauseCleaning: vi.fn((callback: (error?: unknown, result?: unknown) => void) => callback(undefined, 'ok')),
     resumeCleaning: vi.fn((callback: (error?: unknown, result?: unknown) => void) => callback(undefined, 'ok')),
     sendToBase: vi.fn((callback: (error?: unknown, result?: unknown) => void) => callback(undefined, 'ok')),
-    findMe: vi.fn((callback: (error?: unknown, result?: unknown) => void) => callback(undefined, 'ok')),
+    findMe,
   } as unknown as KoboldRobot;
 
   const updateAccessoryState = vi.fn(async () => undefined);
   const updatePlatformAccessories = vi.fn(async () => undefined);
+  const updateRobot = vi.fn(async () => true);
+  const log = {
+    error: vi.fn(),
+    info: vi.fn(),
+  };
   const platform = {
     api: {
       matter: {
@@ -71,7 +77,8 @@ function createHarness() {
         updatePlatformAccessories,
       },
     },
-    updateRobot: vi.fn(async () => undefined),
+    log,
+    updateRobot,
     scheduleActiveRefresh: vi.fn(),
   } as unknown as KoboldHomebridgePlatform;
 
@@ -89,6 +96,9 @@ function createHarness() {
     robot,
     startBoundary,
     startCleaning,
+    findMe,
+    log,
+    updateRobot,
     updateAccessoryState,
     updatePlatformAccessories,
   };
@@ -118,6 +128,82 @@ describe('Kobold Matter accessory', () => {
     await harness.handler.accessory.handlers?.rvcRunMode?.changeToMode?.({ newMode: MatterRunMode.Cleaning });
     expect(harness.startCleaning).toHaveBeenCalledOnce();
     expect(harness.startBoundary).not.toHaveBeenCalled();
+  });
+
+  it('does not publish Matter updates when the tracked state is unchanged', async () => {
+    const harness = createHarness();
+
+    await harness.handler.syncState();
+
+    expect(harness.updateAccessoryState).not.toHaveBeenCalled();
+  });
+
+  it('publishes only attributes that changed since the last snapshot', async () => {
+    const harness = createHarness();
+    harness.robot.charge = 50;
+    harness.robot.canPause = true;
+
+    await harness.handler.syncState();
+
+    expect(harness.updateAccessoryState).toHaveBeenCalledTimes(3);
+    expect(harness.updateAccessoryState).toHaveBeenCalledWith(
+      expect.any(String),
+      'powerSource',
+      { batPercentRemaining: 100 },
+    );
+    expect(harness.updateAccessoryState).toHaveBeenCalledWith(
+      expect.any(String),
+      'rvcRunMode',
+      { currentMode: MatterRunMode.Cleaning },
+    );
+    expect(harness.updateAccessoryState).toHaveBeenCalledWith(
+      expect.any(String),
+      'rvcOperationalState',
+      { operationalState: MatterOperationalState.Running },
+    );
+  });
+
+  it('aborts a command when its forced state refresh fails', async () => {
+    const harness = createHarness();
+    harness.updateRobot.mockResolvedValueOnce(false);
+
+    await expect(
+      harness.handler.accessory.handlers?.rvcRunMode?.changeToMode?.({ newMode: MatterRunMode.Cleaning }),
+    ).rejects.toThrow('latest robot state');
+
+    expect(harness.startCleaning).not.toHaveBeenCalled();
+    expect(harness.updateAccessoryState).not.toHaveBeenCalled();
+  });
+
+  it('propagates robot callback errors without publishing optimistic state', async () => {
+    const harness = createHarness();
+    harness.startCleaning.mockImplementationOnce((_eco, _care, _noGoLines, callback) => {
+      callback(new Error('device rejected command'));
+    });
+
+    await expect(
+      harness.handler.accessory.handlers?.rvcRunMode?.changeToMode?.({ newMode: MatterRunMode.Cleaning }),
+    ).rejects.toThrow('device rejected command');
+
+    expect(harness.updateAccessoryState).not.toHaveBeenCalled();
+    expect(harness.log.error).toHaveBeenCalledWith(expect.stringContaining('start whole-home cleaning'));
+  });
+
+  it('times out callback commands and reports their context', async () => {
+    vi.useFakeTimers();
+    try {
+      const harness = createHarness();
+      harness.findMe.mockImplementationOnce(() => undefined);
+
+      const command = harness.handler.accessory.handlers?.identify?.identify?.();
+      const rejection = expect(command).rejects.toThrow('timed out after 30 seconds');
+      await vi.advanceTimersByTimeAsync(30_000);
+      await rejection;
+
+      expect(harness.log.error).toHaveBeenCalledWith(expect.stringContaining('identify'));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps selected areas without replacing the external Matter endpoint', async () => {

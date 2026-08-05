@@ -144,32 +144,33 @@ The `language` can be `de` for German, `en` for English, or `fr` for French.
 
 ## Matter migration
 
-Matter support follows Homebridge's [robotic-vacuum Matter API](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-12-Robotic). It requires Homebridge 2, Node.js 24, and Matter enabled for the main bridge or this plugin's child bridge. If the plugin runs as a child bridge, open its bridge settings and enable **Matter → External Accessories** before restarting Homebridge. This is a Homebridge-level setting and cannot be enabled by the plugin's exposure setting. A child bridge is recommended while testing because it isolates the Matter server and pairing data.
+Matter support follows Homebridge's [robotic-vacuum Matter API](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-12-Robotic). It requires Homebridge 2, Node.js 24, and Matter external-accessory support enabled for the main bridge or this plugin's child bridge. Protocol exposure belongs to the bridge configuration: the plugin always provides its established HAP accessory and automatically adds the Matter robotic vacuum when `api.isMatterEnabled()` reports that Matter is active.
 
-Set `exposureMode` to choose which accessory implementation is published:
+Choose the bridge configuration that matches the desired exposure:
 
-- `both` (default): Publish HomeKit and Matter accessories together. This retains Homebridge UI control and HomeKit-only features while also making the native Matter robotic vacuum available. Pairing both versions to the same home can create duplicate robot tiles.
-- `homekit`: Publish only the established HomeKit switches and sensors. This provides the widest feature coverage and Homebridge UI control, but no Matter accessory.
-- `matter`: Publish only the native Matter robotic vacuum. Matter accessories are managed in Apple Home or another Matter controller and do not appear in the Homebridge Accessories screen. If Matter is not enabled, the plugin logs a warning and falls back to HomeKit so the robot remains available.
+- **HAP only:** leave Matter disabled for the bridge.
+- **HAP + Matter:** leave HAP enabled and enable **Matter → External Accessories** for the bridge. Pairing both versions to the same home can create duplicate robot tiles.
+- **Matter only:** put Kobold on a dedicated child bridge, disable HAP for that child bridge, and enable **Matter → External Accessories**. Matter accessories are managed in Apple Home or another Matter controller and do not appear in the Homebridge Accessories screen.
 
-Example migration configuration:
+Per-plugin protocol selection is intentionally unavailable on a shared main bridge because Homebridge owns protocol advertisement at bridge level. Use a dedicated child bridge when Kobold needs different HAP/Matter settings from other plugins. The plugin never edits `_bridge`, HAP, or Matter settings automatically.
+
+Enabling only **Matter → External Accessories** is sufficient. Homebridge represents that external-only mode as `matter: { "enabled": false, "externalsOnly": true }`: it does not advertise an aggregate Matter bridge, but it still exposes the Matter API used by Kobold's per-robot external accessories.
+
+The plugin portion of the configuration remains independent of the bridge's protocol settings:
 
 ```json
 "platforms": [
   {
     "platform": "KoboldVacuumRobot",
     "token": "YourToken",
-    "exposureMode": "both",
     "refresh": "auto"
   }
 ]
 ```
 
-Restart Homebridge after enabling Matter. Each Kobold robotic vacuum receives its own Matter pairing QR code. In the Homebridge UI, open **Plugins → Homebridge Kobold → ⋮ Actions → External Accessories**, then select the robot to view its QR code, manual pairing code, and pairing status. Homebridge Matter is not CSA-certified, so controllers may show an uncertified-accessory warning; pairing also requires Homebridge and the controller to share a network with working mDNS and IPv6.
+Restart Homebridge after changing bridge settings. Each Kobold robotic vacuum receives its own Matter pairing QR code. In the Homebridge UI, open **Plugins → Homebridge Kobold → ⋮ Actions → External Accessories**, then select the robot to view its QR code, manual pairing code, and pairing status. Homebridge Matter is not CSA-certified, so controllers may show an uncertified-accessory warning; pairing also requires Homebridge and the controller to share a network with working mDNS and IPv6.
 
-The Matter accessory exposes normal and eco vacuum modes, start/pause/resume, return to dock, battery and charging state, Identify, and polygon map boundaries as selectable rooms. Schedule control, NoGo-line selection, Extra Care, and configurable spot-cleaning dimensions do not have faithful standard Matter RVC controls; they remain available only through the legacy HomeKit accessory when using `homekit` or `both`.
-
-The default `both` mode can be kept permanently when you want Homebridge UI control or the HomeKit-only features. To avoid duplicate controls and run a single protocol after testing, select either `homekit` or `matter`.
+The Matter accessory exposes normal and eco vacuum modes, start/pause/resume, return to dock, battery and charging state, Identify, and polygon map boundaries as selectable rooms. Schedule control, NoGo-line selection, Extra Care, and configurable spot-cleaning dimensions do not have faithful standard Matter RVC controls; they remain available only through the HAP accessory when HAP is enabled for the bridge.
 
 ### Advanced
 

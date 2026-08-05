@@ -26,7 +26,6 @@ export interface KoboldPlatformConfig extends PlatformConfig {
   refresh?: string | number;
   hidden?: string[] | string;
   disabled?: string[] | string;
-  exposureMode?: ExposureMode;
 }
 
 export interface KoboldBoundary {
@@ -44,11 +43,10 @@ export interface RobotRecord {
   timer?: NodeJS.Timeout;
   lastUpdate?: Date;
   lastState?: KoboldRobotState;
-  updatePromise?: Promise<void>;
+  updatePromise?: Promise<boolean>;
 }
 
 type RefreshSetting = number | 'auto';
-type ExposureMode = 'homekit' | 'matter' | 'both';
 
 export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
@@ -64,12 +62,9 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly language: string;
   public readonly hiddenServices: string[] | string;
   public readonly refresh: RefreshSetting;
-  public readonly exposureMode: ExposureMode;
   public readonly spotCharacteristics: SpotCharacteristicConstructors;
 
   private readonly token: string;
-  private readonly exposeHomeKit: boolean;
-  private readonly exposeMatter: boolean;
   private readonly matterAvailable: boolean;
 
   constructor(
@@ -83,23 +78,12 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
 
     const platformConfig = (config ?? {}) as KoboldPlatformConfig;
     this.token = platformConfig.token ?? '';
-    this.exposureMode = ['homekit', 'matter', 'both'].includes(platformConfig.exposureMode ?? '')
-      ? platformConfig.exposureMode!
-      : 'both';
-
+    // Homebridge reports external-only mode as enabled here as well. In that
+    // mode the aggregate bridge server is suppressed, but api.matter remains
+    // available so plugins can publish their own external Matter accessories.
     this.matterAvailable = this.api.isMatterEnabled?.() === true && this.api.matter !== undefined;
-    const matterRequested = this.exposureMode === 'matter' || this.exposureMode === 'both';
-    this.exposeMatter = matterRequested && this.matterAvailable;
-    this.exposeHomeKit = this.exposureMode === 'homekit'
-      || this.exposureMode === 'both'
-      || (this.exposureMode === 'matter' && !this.matterAvailable);
 
-    if (matterRequested && !this.matterAvailable) {
-      this.log.warn('Matter exposure was requested but Matter is not enabled on this bridge; falling back to HomeKit.');
-    }
-    this.log.info(
-      `Accessory exposure: ${this.exposeMatter && this.exposeHomeKit ? 'HomeKit and Matter' : this.exposeMatter ? 'Matter' : 'HomeKit'}`,
-    );
+    this.log.info(`Matter exposure is ${this.matterAvailable ? 'enabled' : 'disabled'} for this bridge.`);
     this.language = ['en', 'de', 'fr'].includes(platformConfig.language ?? '')
       ? platformConfig.language!
       : 'en';
@@ -189,10 +173,8 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
         this.log.info(
           `Found robot #${index + 1} named "${robot.device.name}" with serial "${robot.device._serial.substring(0, 9)}XXXXXXXXXXXX"`,
         );
-        if (this.exposeHomeKit) {
-          this.setupMainAccessory(robot);
-        }
-        if (this.exposeMatter) {
+        this.setupMainAccessory(robot);
+        if (this.matterAvailable) {
           const matterAccessory = this.setupMatterAccessory(robot);
           if (!this.matterAccessories.has(matterAccessory.UUID)) {
             newMatterAccessories.push(matterAccessory);
@@ -205,7 +187,7 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
         await this.api.matter!.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, newMatterAccessories);
       }
 
-      if (this.exposeMatter) {
+      if (this.matterAvailable) {
         // RVC accessories are published as external Matter servers. Homebridge
         // currently replaces its registered internal accessory (including the
         // live endpoint) when updatePlatformAccessories() is called for a cached
@@ -395,36 +377,39 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
     return this.robots.find(robot => robot.device._serial === serial);
   }
 
-  public async updateRobot(serial: string, force = false): Promise<void> {
+  public async updateRobot(serial: string, force = false): Promise<boolean> {
     const robot = this.getRobot(serial);
     if (!robot) {
-      return;
+      return false;
     }
 
     if (robot.updatePromise) {
-      await robot.updatePromise;
-      return;
+      return robot.updatePromise;
     }
 
     if (!force && robot.lastUpdate && new Date().getTime() - robot.lastUpdate.getTime() < 2000) {
-      return;
+      return true;
     }
 
     debug(`${robot.device.name}: ++ Updating robot state`);
-    robot.lastUpdate = new Date();
-    robot.updatePromise = new Promise<void>(resolve => {
+    robot.updatePromise = new Promise<boolean>(resolve => {
       robot.device.getState((error: unknown, state: KoboldRobotState) => {
         if (error) {
           this.log.error('Cannot update robot. Check if robot is online. ' + error);
+          resolve(false);
         } else if (state) {
           robot.lastState = state;
+          robot.lastUpdate = new Date();
+          resolve(true);
+        } else {
+          this.log.error('Cannot update robot. The robot returned no state.');
+          resolve(false);
         }
-        resolve();
       });
     });
 
     try {
-      await robot.updatePromise;
+      return await robot.updatePromise;
     } finally {
       robot.updatePromise = undefined;
     }
@@ -464,7 +449,10 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
   }
 
   private async updateRobotAndAccessories(robot: RobotRecord): Promise<void> {
-    await this.updateRobot(robot.device._serial);
+    const updated = await this.updateRobot(robot.device._serial);
+    if (!updated) {
+      return;
+    }
     robot.mainAccessory?.updated();
     try {
       await robot.matterAccessory?.syncState();
