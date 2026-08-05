@@ -9,7 +9,7 @@ interface ExposureInternals {
   exposeMatter: boolean;
 }
 
-function createPlatform(exposureMode: 'homekit' | 'matter' | 'both', matterEnabled: boolean) {
+function createPlatform(exposureMode: 'homekit' | 'matter' | 'both' | undefined, matterEnabled: boolean) {
   class FakeCharacteristic {}
   class FakeService {}
 
@@ -31,11 +31,13 @@ function createPlatform(exposureMode: 'homekit' | 'matter' | 'both', matterEnabl
     matter: matterEnabled ? {} : undefined,
     on: vi.fn(),
   } as unknown as API;
-  const config = {
+  const config: PlatformConfig = {
     platform: 'KoboldVacuumRobot',
     token: 'token',
-    exposureMode,
-  } as PlatformConfig;
+  };
+  if (exposureMode !== undefined) {
+    config.exposureMode = exposureMode;
+  }
 
   const platform = new KoboldHomebridgePlatform(log, config, api);
   return {
@@ -45,6 +47,12 @@ function createPlatform(exposureMode: 'homekit' | 'matter' | 'both', matterEnabl
 }
 
 describe('accessory exposure selection', () => {
+  it('defaults to HomeKit and Matter when Matter is available', () => {
+    const { internals } = createPlatform(undefined, true);
+    expect(internals.exposeHomeKit).toBe(true);
+    expect(internals.exposeMatter).toBe(true);
+  });
+
   it('falls back to HomeKit when Matter is requested on a bridge without Matter', () => {
     const { internals, log } = createPlatform('matter', false);
     expect(internals.exposeHomeKit).toBe(true);
@@ -52,7 +60,7 @@ describe('accessory exposure selection', () => {
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('falling back to HomeKit'));
   });
 
-  it('enables both adapters during migration when Matter is available', () => {
+  it('enables both adapters when dual exposure is selected', () => {
     const { internals } = createPlatform('both', true);
     expect(internals.exposeHomeKit).toBe(true);
     expect(internals.exposeMatter).toBe(true);

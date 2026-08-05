@@ -1,85 +1,159 @@
 {
-    "pluginAlias": "KoboldVacuumRobot",
-    "pluginType": "platform",
-    "headerDisplay": "For Advanced settings like the refresh time interval or disabled switches/sensors. [Check Here](https://github.com/himbeles/homebridge-kobold#readme)",
-    "strictValidation": false,
-    "schema": {
-      "type": "object",
-      "required": [
-        "name", "token"
-      ],
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string",
-          "default": "Kobold Vacuum Platform"
-        },
-        "token": {
-            "title": "token",
-            "type": "string",
-            "description": "Your Kobold Token (https://git.io/J3g1b)"
-        },
-        "language": {
-          "title": "language",
-          "type": "string",
-          "default": "en",
-          "oneOf": [
-            {
-              "title": "English",
-              "enum": [
-                "en"
-              ]
-            },
-            {
-              "title": "German",
-              "enum": [
-                "de"
-              ]
-            },
-            {
-              "title": "French",
-              "enum": [
-                "fr"
-              ]
-            }
-          ]
-        },
-        "exposureMode": {
-          "title": "Accessory Exposure",
-          "type": "string",
-          "default": "homekit",
-          "description": "Matter requires Homebridge 2 and Matter enabled on this bridge. Use Both while migrating, then Matter after pairing succeeds.",
-          "oneOf": [
-            {
-              "title": "HomeKit (legacy)",
-              "enum": ["homekit"]
-            },
-            {
-              "title": "Matter",
-              "enum": ["matter"]
-            },
-            {
-              "title": "Both (migration/testing)",
-              "enum": ["both"]
-            }
-          ]
-        },
-        "refresh": {
-          "title": "Refresh Interval",
-          "description": "Use auto, 0 to disable, or a number of seconds (minimum 60). Matter auto mode polls every 60 seconds while active and 120 seconds while idle.",
-          "type": ["string", "number"],
-          "default": "auto"
-        },
-        "hidden": {
-          "title": "Hidden HomeKit Services",
-          "description": "Only applies to legacy HomeKit services.",
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "enum": ["dock", "dockstate", "eco", "nogolines", "extracare", "schedule", "find", "spot"]
+  "pluginAlias": "KoboldVacuumRobot",
+  "pluginType": "platform",
+  "headerDisplay": "Configure how your Kobold robot is exposed. Matter requires Homebridge 2 and must be enabled on this bridge. [Documentation](https://github.com/himbeles/homebridge-kobold#readme)",
+  "strictValidation": false,
+  "schema": {
+    "type": "object",
+    "required": [
+      "name",
+      "token"
+    ],
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Kobold Vacuum Platform"
+      },
+      "token": {
+        "title": "Kobold Token",
+        "type": "string",
+        "description": "Your Kobold authentication token. See the documentation for token setup instructions."
+      },
+      "exposureMode": {
+        "title": "Accessory Exposure",
+        "type": "string",
+        "default": "both",
+        "description": "Choose which protocols publish each robot. Restart Homebridge after changing this setting.",
+        "oneOf": [
+          {
+            "title": "HomeKit + Matter (default)",
+            "enum": [
+              "both"
+            ]
+          },
+          {
+            "title": "HomeKit only",
+            "enum": [
+              "homekit"
+            ]
+          },
+          {
+            "title": "Matter only",
+            "enum": [
+              "matter"
+            ]
           }
+        ]
+      },
+      "language": {
+        "title": "HomeKit Language",
+        "type": "string",
+        "default": "en",
+        "description": "Language used for the HomeKit service names and Siri commands. This does not affect Matter.",
+        "oneOf": [
+          {
+            "title": "English",
+            "enum": [
+              "en"
+            ]
+          },
+          {
+            "title": "German",
+            "enum": [
+              "de"
+            ]
+          },
+          {
+            "title": "French",
+            "enum": [
+              "fr"
+            ]
+          }
+        ]
+      },
+      "hidden": {
+        "title": "Hidden HomeKit Services",
+        "description": "Hide selected switches and sensors from the HomeKit accessory. Matter clusters are not affected.",
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "enum": [
+            "dock",
+            "dockstate",
+            "eco",
+            "nogolines",
+            "extracare",
+            "schedule",
+            "find",
+            "spot"
+          ]
         }
+      },
+      "refresh": {
+        "title": "Refresh Interval",
+        "description": "Use auto, 0 to disable, or a number of seconds (minimum 60). Matter auto mode polls every 60 seconds while active and 120 seconds while idle.",
+        "type": [
+          "string",
+          "number"
+        ],
+        "default": "auto"
       }
     }
+  },
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "Kobold Account",
+      "description": "Connection details used to discover your Kobold robots.",
+      "items": [
+        "name",
+        "token"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Accessory Exposure",
+      "description": "Choose how each robot is published to smart-home controllers.",
+      "items": [
+        "exposureMode",
+        {
+          "type": "help",
+          "helpvalue": "<p><strong>HomeKit + Matter:</strong> Publishes both versions. The HomeKit version appears in the Homebridge Accessories screen and retains HomeKit-only controls. The Matter version works with Matter controllers. Pairing both versions to the same home can create duplicate robot tiles.</p><p><strong>HomeKit only:</strong> Publishes the established HomeKit accessory with the widest feature coverage and Homebridge UI control, but no Matter accessory.</p><p><strong>Matter only:</strong> Publishes only the native Matter robotic vacuum. Matter accessories do not appear in the Homebridge Accessories screen and must be managed with Apple Home or another Matter controller. HomeKit-only controls such as schedules, No-Go lines, Extra Care, and spot dimensions are unavailable.</p><p>Matter requires Homebridge 2, Matter enabled on this bridge, and working mDNS and IPv6. Controllers may warn that the Homebridge Matter accessory is uncertified.</p>"
+        },
+        {
+          "type": "help",
+          "condition": {
+            "functionBody": "return model.exposureMode === 'both' || model.exposureMode === 'matter';"
+          },
+          "helpvalue": "<p><strong>Find the Matter pairing code after restarting:</strong> open <strong>Plugins → Homebridge Kobold → ⋮ Actions → External Accessories</strong>. Select a robot to view its QR code, manual pairing code, and pairing status.</p>"
+        }
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "HomeKit Exposure",
+      "description": "These options apply only when HomeKit exposure is enabled.",
+      "expandable": true,
+      "expanded": true,
+      "condition": {
+        "functionBody": "return model.exposureMode !== 'matter';"
+      },
+      "items": [
+        "language",
+        "hidden"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "State Refresh",
+      "description": "Control how often robot state is refreshed from the Kobold service.",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "refresh"
+      ]
+    }
+  ]
 }

@@ -85,7 +85,7 @@ export class KoboldHomebridgePlatform implements DynamicPlatformPlugin {
     this.token = platformConfig.token ?? '';
     this.exposureMode = ['homekit', 'matter', 'both'].includes(platformConfig.exposureMode ?? '')
       ? platformConfig.exposureMode!
-      : 'homekit';
+      : 'both';
 
     this.matterAvailable = this.api.isMatterEnabled?.() === true && this.api.matter !== undefined;
     const matterRequested = this.exposureMode === 'matter' || this.exposureMode === 'both';

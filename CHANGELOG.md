@@ -9,6 +9,7 @@
 * Aligned the watch environment with the Homebridge plugin template and global Homebridge/Config UI runtime
 * Standardized development, publishing, and package compatibility on Node.js 24
 * Avoided cached external Matter accessories losing their runtime endpoint after restart
+* Made HomeKit + Matter the default exposure and reorganized the Config UI with explicit protocol trade-offs and a dedicated HomeKit settings block
 
 ## 0.1.0
 
