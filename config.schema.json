@@ -1,7 +1,7 @@
 {
   "pluginAlias": "KoboldVacuumRobot",
   "pluginType": "platform",
-  "headerDisplay": "Configure how your Kobold robot is exposed. Matter requires Homebridge 2 and must be enabled on this bridge. [Documentation](https://github.com/himbeles/homebridge-kobold#readme)",
+  "headerDisplay": "Configure how your Kobold robot is exposed. Matter requires Homebridge 2 and must be enabled on this bridge. When using a child bridge, enable Matter support for external accessories in its bridge settings. [Documentation](https://github.com/himbeles/homebridge-kobold#readme)",
   "strictValidation": false,
   "schema": {
     "type": "object",
@@ -127,7 +127,7 @@
           "condition": {
             "functionBody": "return model.exposureMode === 'both' || model.exposureMode === 'matter';"
           },
-          "helpvalue": "<p><strong>Find the Matter pairing code after restarting:</strong> open <strong>Plugins → Homebridge Kobold → ⋮ Actions → External Accessories</strong>. Select a robot to view its QR code, manual pairing code, and pairing status.</p>"
+          "helpvalue": "<p><strong>Child bridge setup required:</strong> If this plugin runs as a child bridge, open its bridge settings and enable <strong>Matter → External Accessories</strong>. Matter accessories cannot be published until this Homebridge-level option is enabled.</p><p><strong>Find the Matter pairing code after restarting:</strong> open <strong>Plugins → Homebridge Kobold → ⋮ Actions → External Accessories</strong>. Select a robot to view its QR code, manual pairing code, and pairing status.</p>"
         }
       ]
     },

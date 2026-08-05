@@ -144,7 +144,7 @@ The `language` can be `de` for German, `en` for English, or `fr` for French.
 
 ## Matter migration
 
-Matter support follows Homebridge's [robotic-vacuum Matter API](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-12-Robotic). It requires Homebridge 2, Node.js 24, and Matter enabled for the main bridge or this plugin's child bridge. A child bridge is recommended while testing because it isolates the Matter server and pairing data.
+Matter support follows Homebridge's [robotic-vacuum Matter API](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-12-Robotic). It requires Homebridge 2, Node.js 24, and Matter enabled for the main bridge or this plugin's child bridge. If the plugin runs as a child bridge, open its bridge settings and enable **Matter → External Accessories** before restarting Homebridge. This is a Homebridge-level setting and cannot be enabled by the plugin's exposure setting. A child bridge is recommended while testing because it isolates the Matter server and pairing data.
 
 Set `exposureMode` to choose which accessory implementation is published:
 

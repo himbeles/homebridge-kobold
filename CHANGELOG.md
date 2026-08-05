@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Changed
+
+* Added a conditional config UI notice that Matter external-accessory support must be enabled in the plugin's child bridge settings
+
 ## 2.0.0-beta.0 (2026-08-05)
 
 ### Added
