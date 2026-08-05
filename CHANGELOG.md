@@ -2,16 +2,23 @@
 
 ## 2.0.0-beta.0 (2026-08-05)
 
-* Added a native Matter robotic-vacuum accessory for Homebridge 2
-* Added HomeKit, Matter, and dual-exposure modes
-* Added Matter run/clean modes, operational state, battery state, and Service Area room selection
-* Added stable Matter accessory, map, and area identities plus automated Matter state tests
-* Replaced direct `hap-nodejs` type/runtime imports with the Homebridge API for Homebridge 2 compatibility
-* Restricted npm package contents to release artifacts so local test configuration is not published
-* Aligned the watch environment with the Homebridge plugin template and global Homebridge/Config UI runtime
-* Standardized development, publishing, and package compatibility on Node.js 24
-* Avoided cached external Matter accessories losing their runtime endpoint after restart
-* Made HomeKit + Matter the default exposure and reorganized the Config UI with explicit protocol trade-offs and a dedicated HomeKit settings block
+### Added
+
+* Native Matter robotic-vacuum support for Homebridge 2, including run and clean modes, start, pause, resume, return to dock, operational and battery state, Identify, and room selection through Matter Service Areas
+* `homekit`, `matter`, and `both` exposure modes, with HomeKit + Matter as the default and an automatic HomeKit fallback when Matter is unavailable
+* Config UI sections for exposure and HomeKit-specific settings, including protocol trade-offs and directions to the Matter pairing codes
+
+### Changed
+
+* Updated state synchronization and adaptive polling to keep HomeKit and Matter accessories current without overlapping cloud requests
+* Replaced the legacy `homebridge-lib` and direct `hap-nodejs` integration with the Homebridge API
+* Standardized development, testing, and npm publishing on Node.js 24, with release validation covering lint, build, and Matter tests
+* Limited the npm package to release artifacts and excluded local Homebridge test state that may contain credentials and pairing data
+
+### Fixed
+
+* Preserved stable Matter accessory, map, and room identities across restarts
+* Prevented cached external Matter accessories from losing their live endpoint after restart
 
 ## 0.1.0
 
