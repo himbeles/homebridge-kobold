@@ -46,6 +46,7 @@ export interface KoboldMatterContext {
   robotSerial: string;
   areaIds: NumericIdMap;
   mapIds: NumericIdMap;
+  cleanMode: number;
   selectedAreaIds: number[];
 }
 
@@ -119,6 +120,13 @@ export class KoboldMatterVacuumAccessory {
       robotSerial: this.robot._serial,
       areaIds: this.normaliseIdMap(source.areaIds),
       mapIds: this.normaliseIdMap(source.mapIds),
+      cleanMode: source.cleanMode === MatterCleanMode.Eco
+        ? MatterCleanMode.Eco
+        : source.cleanMode === MatterCleanMode.Normal
+          ? MatterCleanMode.Normal
+          : this.robot.eco
+            ? MatterCleanMode.Eco
+            : MatterCleanMode.Normal,
       selectedAreaIds: Array.isArray(source.selectedAreaIds)
         ? source.selectedAreaIds.filter((id): id is number => typeof id === 'number')
         : [],
@@ -218,7 +226,7 @@ export class KoboldMatterVacuumAccessory {
             modeTags: [{ value: MatterModeTag.Vacuum }, { value: MatterModeTag.LowEnergy }],
           },
         ],
-        currentMode: state.cleanMode,
+        currentMode: this.accessory.context.cleanMode,
       },
       rvcOperationalState: {
         operationalStateList: OPERATIONAL_STATES.map(operationalStateId => ({ operationalStateId })),
@@ -349,6 +357,7 @@ export class KoboldMatterVacuumAccessory {
       throw new Error('The cleaning mode cannot be changed while a cleaning cycle is active.');
     }
     if (request.newMode === MatterCleanMode.Normal) {
+      this.accessory.context.cleanMode = MatterCleanMode.Normal;
       this.robot.eco = false;
       this.rememberState(this.platform.api.matter!.clusterNames.RvcCleanMode, {
         currentMode: MatterCleanMode.Normal,
@@ -356,6 +365,7 @@ export class KoboldMatterVacuumAccessory {
       return;
     }
     if (request.newMode === MatterCleanMode.Eco) {
+      this.accessory.context.cleanMode = MatterCleanMode.Eco;
       this.robot.eco = true;
       this.rememberState(this.platform.api.matter!.clusterNames.RvcCleanMode, {
         currentMode: MatterCleanMode.Eco,
@@ -493,7 +503,7 @@ export class KoboldMatterVacuumAccessory {
   }
 
   private async startHouseCleaning(): Promise<void> {
-    const eco = !!this.robot.eco;
+    const eco = this.accessory.context.cleanMode === MatterCleanMode.Eco;
     const extraCare = this.robot.navigationMode === 2;
     const noGoLines = !!this.robot.noGoLines;
     await this.runCommand('start whole-home cleaning', callback => this.robot.startCleaning(
@@ -522,7 +532,7 @@ export class KoboldMatterVacuumAccessory {
     this.currentAreaId = area.areaId;
     this.hasSeenCurrentAreaRunning = false;
     await this.runCommand(`start cleaning area ${area.name}`, callback => this.robot.startCleaningBoundary(
-      !!this.robot.eco,
+      this.accessory.context.cleanMode === MatterCleanMode.Eco,
       this.robot.navigationMode === 2,
       boundaryId,
       callback,
@@ -538,6 +548,14 @@ export class KoboldMatterVacuumAccessory {
   public async syncState(): Promise<void> {
     const state = deriveMatterRobotState(this.robot, this.robotRecord.lastState);
     let startedNextArea = false;
+
+    // The Kobold API reports the parameters of the last cleaning while idle.
+    // Treat the reported clean mode as authoritative only during an active
+    // cleaning cycle; otherwise preserve the mode selected by the Matter
+    // controller for the next run.
+    if (state.runMode === MatterRunMode.Cleaning) {
+      this.accessory.context.cleanMode = state.cleanMode;
+    }
 
     const observedArea = this.robot.cleaningBoundaryId
       ? this.areaByBoundaryId.get(this.robot.cleaningBoundaryId)
@@ -567,7 +585,7 @@ export class KoboldMatterVacuumAccessory {
     const updates: Promise<void>[] = [
       this.updateChangedState(
         matter.clusterNames.RvcCleanMode,
-        { currentMode: state.cleanMode },
+        { currentMode: this.accessory.context.cleanMode },
       ),
       this.updateChangedState(
         matter.clusterNames.PowerSource,
