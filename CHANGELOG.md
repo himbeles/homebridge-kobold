@@ -1,5 +1,11 @@
 ## Unreleased
 
+## 2.0.0-beta.2 (2026-08-07)
+
+### Fixed
+
+* Preserved the clean mode selected by Matter controllers while the robot is idle, so Energy Saving mode can be disabled in Apple Home and the selected mode is used for the next cleaning cycle
+
 ## 2.0.0-beta.1 (2026-08-05)
 
 ### Changed
