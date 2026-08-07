@@ -4,7 +4,7 @@ import type { MatterAccessory } from 'homebridge';
 import type { KoboldRobot } from 'node-kobold-control';
 
 import { KoboldMatterVacuumAccessory } from '../src/matterAccessory.js';
-import { MatterOperationalState, MatterRunMode } from '../src/matterState.js';
+import { MatterCleanMode, MatterOperationalState, MatterRunMode } from '../src/matterState.js';
 import type { KoboldHomebridgePlatform, RobotRecord } from '../src/platform.js';
 
 function createHarness() {
@@ -128,6 +128,42 @@ describe('Kobold Matter accessory', () => {
     await harness.handler.accessory.handlers?.rvcRunMode?.changeToMode?.({ newMode: MatterRunMode.Cleaning });
     expect(harness.startCleaning).toHaveBeenCalledOnce();
     expect(harness.startBoundary).not.toHaveBeenCalled();
+  });
+
+  it('preserves a selected clean mode across idle refreshes and uses it for the next run', async () => {
+    const harness = createHarness();
+    await harness.handler.accessory.handlers?.rvcCleanMode?.changeToMode?.({ newMode: MatterCleanMode.Eco });
+    await harness.handler.accessory.handlers?.rvcCleanMode?.changeToMode?.({ newMode: MatterCleanMode.Normal });
+
+    // Kobold reports the mode used by the previous run while it is idle.
+    harness.robot.eco = true;
+    await harness.handler.syncState();
+
+    expect(harness.handler.accessory.context.cleanMode).toBe(MatterCleanMode.Normal);
+    expect(harness.updateAccessoryState).not.toHaveBeenCalledWith(
+      expect.any(String),
+      'rvcCleanMode',
+      { currentMode: MatterCleanMode.Eco },
+    );
+
+    await harness.handler.accessory.handlers?.rvcRunMode?.changeToMode?.({ newMode: MatterRunMode.Cleaning });
+    expect(harness.startCleaning).toHaveBeenCalledWith(false, 1, false, expect.any(Function));
+  });
+
+  it('adopts the robot clean mode while a cleaning cycle is active', async () => {
+    const harness = createHarness();
+    harness.robot.eco = true;
+    harness.robot.canStart = false;
+    harness.robot.canPause = true;
+
+    await harness.handler.syncState();
+
+    expect(harness.handler.accessory.context.cleanMode).toBe(MatterCleanMode.Eco);
+    expect(harness.updateAccessoryState).toHaveBeenCalledWith(
+      expect.any(String),
+      'rvcCleanMode',
+      { currentMode: MatterCleanMode.Eco },
+    );
   });
 
   it('does not publish Matter updates when the tracked state is unchanged', async () => {
