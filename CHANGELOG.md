@@ -1,3 +1,44 @@
+## Unreleased
+
+## 2.0.0-beta.2 (2026-08-07)
+
+### Fixed
+
+* Preserved the clean mode selected by Matter controllers while the robot is idle, so Energy Saving mode can be disabled in Apple Home and the selected mode is used for the next cleaning cycle
+
+## 2.0.0-beta.1 (2026-08-05)
+
+### Changed
+
+* Moved protocol exposure control exclusively to Homebridge bridge settings; the plugin now always provides its HAP accessory and automatically adds Matter when the bridge enables Matter external accessories
+* Declared both `supports-hap` and `supports-matter` package transports so Homebridge UI shows Matter support while retaining HAP-enabled child-bridge defaults
+* Added bridge-configuration guidance, including dedicated-child-bridge instructions for Matter-only use
+* Added change-only Matter state publishing for run mode, clean mode, operational state, battery, and Service Areas
+* Made robot refresh failures retain the last published state and abort Matter commands that cannot validate current robot capabilities
+
+### Fixed
+
+* Added error propagation, contextual logging, and a 30-second timeout to callback-based Matter robot commands
+
+## 2.0.0-beta.0 (2026-08-05)
+
+### Added
+
+* Native Matter robotic-vacuum support for Homebridge 2, including run and clean modes, start, pause, resume, return to dock, operational and battery state, Identify, and room selection through Matter Service Areas
+* Config UI sections for exposure and HomeKit-specific settings, including protocol trade-offs and directions to the Matter pairing codes
+
+### Changed
+
+* Updated state synchronization and adaptive polling to keep HomeKit and Matter accessories current without overlapping cloud requests
+* Replaced the legacy `homebridge-lib` and direct `hap-nodejs` integration with the Homebridge API
+* Standardized development, testing, and npm publishing on Node.js 24, with release validation covering lint, build, and Matter tests
+* Limited the npm package to release artifacts and excluded local Homebridge test state that may contain credentials and pairing data
+
+### Fixed
+
+* Preserved stable Matter accessory, map, and room identities across restarts
+* Prevented cached external Matter accessories from losing their live endpoint after restart
+
 ## 0.1.0
 
 * Added start and pause cleaning
@@ -132,4 +173,4 @@
 * Add French plugin language (for example, this gives you a "Aspirer la cuisine" Siri command for a zone called "La cuisine")
 
 ## 0.8.4
-* Link to token getter tool in homebridge UI 
+* Link to token getter tool in homebridge UI

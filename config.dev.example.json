@@ -1,0 +1,36 @@
+{
+  "bridge": {
+    "name": "Homebridge Kobold Dev",
+    "username": "0E:00:00:00:00:01",
+    "port": 51825,
+    "pin": "031-45-154"
+  },
+  "plugins": [
+    "homebridge-kobold",
+    "homebridge-config-ui-x"
+  ],
+  "platforms": [
+    {
+      "platform": "config",
+      "name": "Config",
+      "port": 8581
+    },
+    {
+      "platform": "KoboldVacuumRobot",
+      "name": "Kobold Vacuum Robot",
+      "token": "YOUR_KOBOLD_TOKEN",
+      "refresh": "auto",
+      "_bridge": {
+        "username": "0E:00:00:00:00:02",
+        "port": 57695,
+        "hap": {
+          "enabled": true
+        },
+        "matter": {
+          "enabled": false,
+          "externalsOnly": true
+        }
+      }
+    }
+  ]
+}

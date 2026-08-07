@@ -1,5 +1,4 @@
-import type { Characteristic, CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import type { WithUUID } from 'hap-nodejs';
+import type { Characteristic, CharacteristicValue, PlatformAccessory, Service, WithUUID } from 'homebridge';
 import type { KoboldRobot } from 'node-kobold-control';
 
 import Debug from 'debug';

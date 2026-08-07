@@ -1,49 +1,122 @@
 {
-    "pluginAlias": "KoboldVacuumRobot",
-    "pluginType": "platform",
-    "headerDisplay": "For Advanced settings like the refresh time interval or disabled switches/sensors. [Check Here](https://github.com/himbeles/homebridge-kobold#readme)",
-    "strictValidation": false,
-    "schema": {
-      "type": "object",
-      "required": [
-        "name", "token"
-      ],
-      "properties": {
-        "name": {
-          "title": "Name",
+  "pluginAlias": "KoboldVacuumRobot",
+  "pluginType": "platform",
+  "headerDisplay": "Homebridge bridge settings control whether Kobold accessories are exposed through HAP, Matter, or both. The plugin automatically adds Matter accessories when Matter external-accessory support is enabled for this bridge. [Documentation](https://github.com/himbeles/homebridge-kobold#readme)",
+  "strictValidation": false,
+  "schema": {
+    "type": "object",
+    "required": [
+      "name",
+      "token"
+    ],
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Kobold Vacuum Platform"
+      },
+      "token": {
+        "title": "Kobold Token",
+        "type": "string",
+        "description": "Your Kobold authentication token. See the documentation for token setup instructions."
+      },
+      "language": {
+        "title": "HomeKit Language",
+        "type": "string",
+        "default": "en",
+        "description": "Language used for the HomeKit service names and Siri commands. This does not affect Matter.",
+        "oneOf": [
+          {
+            "title": "English",
+            "enum": [
+              "en"
+            ]
+          },
+          {
+            "title": "German",
+            "enum": [
+              "de"
+            ]
+          },
+          {
+            "title": "French",
+            "enum": [
+              "fr"
+            ]
+          }
+        ]
+      },
+      "hidden": {
+        "title": "Hidden HomeKit Services",
+        "description": "Hide selected switches and sensors from the HomeKit accessory. Matter clusters are not affected.",
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
           "type": "string",
-          "default": "Kobold Vacuum Platform"
-        },
-        "token": {
-            "title": "token",
-            "type": "string",
-            "description": "Your Kobold Token (https://git.io/J3g1b)"
-        },
-        "language": {
-          "title": "language",
-          "type": "string",
-          "default": "en",
-          "oneOf": [
-            {
-              "title": "English",
-              "enum": [
-                "en"
-              ]
-            },
-            {
-              "title": "German",
-              "enum": [
-                "de"
-              ]
-            },
-            {
-              "title": "French",
-              "enum": [
-                "fr"
-              ]
-            }
+          "enum": [
+            "dock",
+            "dockstate",
+            "eco",
+            "nogolines",
+            "extracare",
+            "schedule",
+            "find",
+            "spot"
           ]
         }
+      },
+      "refresh": {
+        "title": "Refresh Interval",
+        "description": "Use auto, 0 to disable, or a number of seconds (minimum 60). Matter auto mode polls every 60 seconds while active and 120 seconds while idle.",
+        "type": [
+          "string",
+          "number"
+        ],
+        "default": "auto"
       }
     }
+  },
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "Kobold Account",
+      "description": "Connection details used to discover your Kobold robots.",
+      "items": [
+        "name",
+        "token"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Protocol Exposure",
+      "description": "Protocol exposure is configured in this bridge's Homebridge settings.",
+      "items": [
+        {
+          "type": "help",
+          "helpvalue": "<p><strong>HAP only:</strong> leave Matter disabled for this bridge.</p><p><strong>HAP + Matter:</strong> leave HAP enabled and enable <strong>Matter → External Accessories</strong> in the bridge settings.</p><p><strong>Matter only:</strong> run Kobold on a dedicated child bridge, disable HAP there, and enable <strong>Matter → External Accessories</strong>. Per-plugin protocol selection is intentionally unavailable on a shared main bridge.</p><p>After restarting, find each Matter pairing code under <strong>Plugins → Homebridge Kobold → ⋮ Actions → External Accessories</strong>. Matter requires Homebridge 2 plus working mDNS and IPv6.</p>"
+        }
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "HomeKit Exposure",
+      "description": "These options apply to the HAP accessory when HAP is enabled for the bridge.",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        "language",
+        "hidden"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "State Refresh",
+      "description": "Control how often robot state is refreshed from the Kobold service.",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "refresh"
+      ]
+    }
+  ]
 }
