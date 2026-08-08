@@ -2,14 +2,14 @@
   "name": "homebridge-kobold",
   "displayName": "Homebridge Kobold Plugin",
   "type": "module",
-  "version": "2.0.0-beta.2",
+  "version": "2.0.0",
   "description": "A Vorwerk Kobold vacuum robot plugin for homebridge.",
   "author": "Luis R.",
   "license": "MIT",
   "homepage": "https://github.com/himbeles/homebridge-kobold#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/himbeles/homebridge-kobold.git"
+    "url": "git+https://github.com/himbeles/homebridge-kobold.git"
   },
   "bugs": {
     "url": "https://github.com/himbeles/homebridge-kobold/issues"

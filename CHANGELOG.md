@@ -1,5 +1,34 @@
 ## Unreleased
 
+## 2.0.0 (2026-08-08)
+
+This release summarizes all changes since 1.1.2.
+
+### Before upgrading
+
+* Node.js 24 is now required. Homebridge 1.8 remains supported for existing HAP/HomeKit accessories; native Matter accessories require Homebridge 2
+* Existing HAP-only installations keep their current accessories and configuration without migration. Matter is optional and controlled through the Homebridge bridge or child-bridge settings
+* Pairing both the HAP and Matter versions of a robot to the same home creates two robot accessories. Use a dedicated child bridge when Matter-only exposure is preferred
+
+### Added
+
+* Native Matter robotic-vacuum support, including run and clean modes, start, pause, resume, return to dock, operational and battery state, Identify, and room selection through Matter Service Areas
+* HAP and Matter transport declarations so Homebridge UI can identify both supported protocols
+* Matter pairing and bridge-configuration guidance in the plugin settings and README
+
+### Changed
+
+* Moved protocol exposure to Homebridge bridge settings: HAP remains available by default, while Matter accessories are added automatically when Matter external accessories are enabled
+* Replaced the legacy `homebridge-lib` integration with the current Homebridge API
+* Improved adaptive polling and state synchronization while preventing overlapping Kobold cloud requests
+* Limited the published npm package to runtime files, documentation, and metadata
+
+### Fixed
+
+* Preserved cached HAP and Matter accessories when robot discovery or refresh fails, retaining the last known state until the robot is reachable again
+* Preserved stable Matter accessory, map, and room identities plus selected areas and clean mode across Homebridge restarts
+* Added Matter command timeouts, error propagation, and capability validation so failed cloud operations do not publish misleading state
+
 ## 2.0.0-beta.2 (2026-08-07)
 
 ### Fixed
